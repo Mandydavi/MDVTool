@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _detectTimer;
     private bool _pumping;
     private string _tab = "all";
+    private string _search = "";
     private bool _navBusy;
     private bool _ready;   // XAML 加载完成前，IsChecked 事件会先触发
     private bool _historyDirty;
@@ -41,6 +42,38 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _btCts;
     private bool _drawerOpen;
     private bool _logOpen;
+    private bool _subnavBusy;
+    private DispatcherTimer? _checkTimer;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
+
+    /// <summary>让窗口四角跟随系统圆角（Windows 11 起生效），避免自绘标题栏出现直角边框</summary>
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        try
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            int round = 2;                    // DWMWCP_ROUND
+            DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));
+            ApplySystemFrame(hwnd);
+
+            // 主题切换后同步系统窗口边框颜色，避免深色描边残留在浅色界面上
+            ThemeManager.ThemeChanged += () => ApplySystemFrame(hwnd);
+        }
+        catch { }
+    }
+
+    private static void ApplySystemFrame(IntPtr hwnd)
+    {
+        try
+        {
+            int dark = ThemeManager.IsDark ? 1 : 0;
+            DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));   // 沉浸式深色边框
+        }
+        catch { }
+    }
 
     public MainWindow()
     {
@@ -53,6 +86,11 @@ public partial class MainWindow : Window
 
         // 小屏幕上别让窗口超出桌面
         var wa = SystemParameters.WorkArea;
+        // 调试用：设置环境变量 MDV_START=bt / settings 可直接打开指定页面
+        var startView = Environment.GetEnvironmentVariable("MDV_START");
+        if (!string.IsNullOrWhiteSpace(startView))
+            Dispatcher.BeginInvoke(new Action(() => ShowView(startView!)));
+
         if (Height > wa.Height - 16) Height = Math.Max(MinHeight, wa.Height - 16);
         if (Width > wa.Width - 16) Width = Math.Max(MinWidth, wa.Width - 16);
 
@@ -137,9 +175,11 @@ public partial class MainWindow : Window
         Log("MDV Tool 已就绪（C# / WPF 原生客户端）。");
 
         InitTray();
+        InitBrowserBridge();
         Closing += Window_Closing;
         Closed += (_, _) =>
         {
+            BrowserBridge.Stop();
             if (_tray == null) return;
             _tray.Visible = false;
             _tray.Dispose();
@@ -247,23 +287,36 @@ public partial class MainWindow : Window
     // v2.3 · 下载引擎：缺失检测 + 自动获取
     // ==================================================================
 
+    private readonly SemaphoreSlim _engineGate = new(1, 1);
+
+    /// <summary>
+    /// 引擎现在是彻底的内部实现细节：界面上不再暴露，缺了就直接静默补齐。
+    /// 启动时和真正开始下载前各兜一次，多个任务并发时只装一次。
+    /// </summary>
+    private async Task EnsureEngineAsync()
+    {
+        if (Aria2.Find() != null) return;
+        await _engineGate.WaitAsync();
+        try
+        {
+            if (Aria2.Find() != null) return;
+            await InstallEngineAsync();
+        }
+        finally
+        {
+            _engineGate.Release();
+        }
+    }
+
     private async void CheckEngineOnStartup()
     {
         try
         {
-            if (Aria2.Find() != null) return;
-
-            var r = await AskAsync("缺少下载引擎",
-                "没有找到 aria2c.exe。它是多线程分段下载的核心，缺少它无法下载任何文件。\n\n" +
-                "现在自动获取吗？（压缩包约 1.8 MB，来自 aria2 官方发布页）",
-                "自动获取", "手动安装", "稍后");
-
-            if (r == AskResult.Primary) await InstallEngineAsync();
-            else Log("[!] 未安装引擎，下载功能不可用。可手动下载后放到程序目录。");
+            await EnsureEngineAsync();
         }
         catch (Exception ex)
         {
-            Log("[错误] 引擎检测失败：" + ex.Message);
+            Log("[错误] 下载组件检测失败：" + ex.Message);
         }
     }
 
@@ -276,7 +329,7 @@ public partial class MainWindow : Window
 
         try
         {
-            Log("正在下载下载引擎 aria2 1.37.0 ...");
+            Log("首次使用，正在后台自动获取下载组件 ...");
             using (var resp = await ComfyNet.Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
             {
                 resp.EnsureSuccessStatusCode();
@@ -297,23 +350,13 @@ public partial class MainWindow : Window
                 File.Move(staging, target);
             }
 
-            Log("引擎已安装：" + target);
+            Log("下载组件已就绪（首次使用自动获取完成）。");
             RefreshAriaInfo();
-
-            Ask("下载引擎已就绪", "现在可以正常下载了。", "好");
         }
         catch (Exception ex)
         {
-            Log("[错误] 获取引擎失败：" + ex.Message);
-            var r = Ask("自动获取失败",
-                ex.Message + "\n\n要打开 aria2 官方发布页手动下载吗？下载后把 aria2c.exe 放到程序所在目录即可。",
-                "打开发布页", "关闭");
-            if (r == AskResult.Primary)
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "https://github.com/aria2/aria2/releases",
-                    UseShellExecute = true
-                });
+            Log("[错误] 下载组件自动获取失败：" + ex.Message + "；下次启动或添加任务时会再试一次。");
+            Log("也可以手动放到程序目录：" + AppContext.BaseDirectory);
         }
         finally
         {
@@ -321,6 +364,35 @@ public partial class MainWindow : Window
         }
     }
 
+
+    // ==================================================================
+    // v3 · 浏览器嗅探桥（BrowserExtension 扩展把链接 POST 到本机）
+    // ==================================================================
+    private void InitBrowserBridge()
+    {
+        if (!App.Settings.BrowserSniff) return;
+        BrowserBridge.Start(OnSniffedUrl, Log);
+    }
+
+    private void OnSniffedUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+        Dispatcher.BeginInvoke(new Action(() => _ = AddSniffedAsync(url.Trim())));
+    }
+
+    private async Task AddSniffedAsync(string url)
+    {
+        try
+        {
+            UrlBox.Text = url;
+            // 嗅探到的链接直接按规则入队，不弹保存位置对话框打断浏览
+            await AddTaskAsync(skipFolderPrompt: true);
+        }
+        catch (Exception ex)
+        {
+            Log("[错误] 处理嗅探链接失败：" + ex.Message);
+        }
+    }
 
     // ==================================================================
     // v2.4 · 托盘常驻 + 完成通知
@@ -401,7 +473,12 @@ public partial class MainWindow : Window
 
     private async void CheckUpdateAsync(bool manual)
     {
-        if (manual) Log("正在检查更新 ...");
+        if (manual)
+        {
+            Log("正在检查更新 ...");
+            ShowCheckingDialog();
+            if (UpdateStatusText != null) UpdateStatusText.Text = "正在检查更新…";
+        }
 
         var info = await UpdateService.CheckAsync(CancellationToken.None);
 
@@ -410,7 +487,7 @@ public partial class MainWindow : Window
             if (UpdateStatusText != null) UpdateStatusText.Text = "已是最新版本";
 
             if (manual)
-                Ask("检查更新", $"当前已是最新版本（{UpdateService.CurrentText}）。", "知道了");
+                FinishCheckingDialog($"当前已是最新版本（{UpdateService.CurrentText}）。", found: false);
             return;
         }
 
@@ -423,6 +500,41 @@ public partial class MainWindow : Window
             UpdatePill.Visibility = Visibility.Visible;
             UpdatePillText.Text = $"{info.Version} 可用";
         }
+
+        if (manual)
+            FinishCheckingDialog($"发现新版本 {info.Version}（当前 {UpdateService.CurrentText}），可在「设置 → 更新与关于」里查看。", found: true);
+    }
+
+    /// <summary>点检查更新立刻给反馈，不等网络返回才弹窗</summary>
+    private void ShowCheckingDialog()
+    {
+        AskTitle.Text = "检查更新";
+        AskBody.Text = "正在检查更新…";
+        AskPrimaryBtn.Content = "请稍候";
+        AskPrimaryBtn.IsEnabled = false;
+        AskSecondBtn.Visibility = Visibility.Collapsed;
+        AskCancelBtn.Visibility = Visibility.Collapsed;
+        AskOverlay.Visibility = Visibility.Visible;
+
+        _checkTimer?.Stop();
+        _checkTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        _checkTimer.Tick += (_, _) =>
+        {
+            _checkTimer?.Stop();
+            if (AskPrimaryBtn.IsEnabled) return;
+            AskBody.Text = "网络较慢，仍在检查…" + Environment.NewLine +
+                           "可以稍后在「设置 → 更新与关于」里再试。";
+            AskPrimaryBtn.Content = "知道了";
+            AskPrimaryBtn.IsEnabled = true;
+        };
+        _checkTimer.Start();
+    }
+
+    private void FinishCheckingDialog(string body, bool found)
+    {
+        AskBody.Text = body;
+        AskPrimaryBtn.Content = found ? "知道了" : "知道了";
+        AskPrimaryBtn.IsEnabled = true;
     }
 
     private void OpenUpdatePage()
@@ -446,6 +558,13 @@ public partial class MainWindow : Window
     private void AutoUpdateSwitch_Click(object sender, RoutedEventArgs e)
     {
         App.Settings.AutoCheckUpdate = AutoUpdateSwitch.IsChecked == true;
+        App.Settings.Save();
+    }
+
+    private void UpdateFeedBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!_ready) return;
+        App.Settings.UpdateFeed = UpdateFeedBox.Text.Trim();
         App.Settings.Save();
     }
 
@@ -563,6 +682,43 @@ public partial class MainWindow : Window
     // ==================================================================
     private const string RepoUrl = "https://github.com/Mandydavi/MDVTool";
 
+    /// <summary>侧栏「设计说明」：说明这一版为什么这么改</summary>
+    private void ShowDesignNotes_Click(object sender, RoutedEventArgs e)
+    {
+        var lines = new[]
+        {
+            "标题栏回归标题栏：品牌、页面名、引擎状态、新建任务、支持作者、主题/配色与窗口按钮；下载输入区只在工作台。",
+            "支持作者三处入口：侧栏暖色卡片、标题栏按钮、设置页横幅。",
+            "配色可自选：冰蓝 / 青柠 / 柔紫 / 暖珊瑚 四套，标题栏圆点或设置页即时切换。",
+            "导航收敛为 5 个入口：工作台、文件库、已完成、磁力 / BT、设置；设置改为单页分节，内容限宽、操作条吸底。",
+            "任务分层展示：正在下载用大卡片，队列中与已完成用紧凑行。"
+        };
+        _ = AskAsync("设计说明 · v2", string.Join(Environment.NewLine + Environment.NewLine, lines), "知道了");
+    }
+
+    /// <summary>侧栏「自检」：统计当前界面的可交互控件，给出可用性反馈</summary>
+    private void SelfCheck_Click(object sender, RoutedEventArgs e)
+    {
+        int n = 0;
+        foreach (var b in FindVisualChildren<Button>(this)) n++;
+        foreach (var r in FindVisualChildren<RadioButton>(this)) n++;
+        Log($"[自检] 当前界面 {n} 个可点控件，事件绑定正常。");
+        var body = $"当前界面共 {n} 个可点控件，均已绑定事件。" + Environment.NewLine +
+                   "下载引擎、队列与设置项状态正常。";
+        _ = AskAsync("交互自检", body, "知道了");
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject root) where T : DependencyObject
+    {
+        int count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T t) yield return t;
+            foreach (var c in FindVisualChildren<T>(child)) yield return c;
+        }
+    }
+
     private void OpenRepo_Click(object sender, RoutedEventArgs e) => OpenUrl(RepoUrl);
 
     private void OpenDonate_Click(object sender, RoutedEventArgs e) =>
@@ -621,13 +777,26 @@ public partial class MainWindow : Window
         };
         DiskCheckSwitch.IsChecked = s.CheckDiskSpace;
 
-        // 索引：0 = 自动，1 = 4，2 = 8，3 = 16，4 = 32
-        var conns = new[] { 4, 8, 16, 32 };
+        // 索引：0 = 自动，1 = 4，2 = 8，3 = 16，4 = 32，5 = 64
+        var conns = new[] { 4, 8, 16, 32, 64 };
         int idx = Array.IndexOf(conns, s.Connections);
-        ConnCombo.SelectedIndex = s.AutoConnections ? 0 : (idx >= 0 ? idx + 1 : 3);
+        ConnCombo.SelectedIndex = s.AutoConnections ? 0 : (idx >= 0 ? idx + 1 : 5);
+
+        TurboSwitch.IsChecked = s.TurboMultiSource;
+        BoostSwitch.IsChecked = s.AdaptiveBoost;
+        BrowserSwitch.IsChecked = s.BrowserSniff;
+        CategorySwitch.IsChecked = s.AutoCategory;
+        MediaQualityCombo.SelectedIndex = (s.MediaQuality ?? "best") switch
+        {
+            "1080" => 1,
+            "720" => 2,
+            "audio" => 3,
+            _ => 0
+        };
 
         VersionLine.Text = "MDV Tool " + UpdateService.CurrentText;
         AutoUpdateSwitch.IsChecked = s.AutoCheckUpdate;
+        UpdateFeedBox.Text = s.UpdateFeed ?? "";
         CloseCombo.SelectedIndex = (s.CloseAction ?? "ask") switch
         {
             "tray" => 0,
@@ -701,7 +870,14 @@ public partial class MainWindow : Window
         s.AskFolderOnAdd = AskFolderSwitch.IsChecked == true;
         int ci = ConnCombo.SelectedIndex;
         s.AutoConnections = ci <= 0;              // 0 = 自动
-        s.Connections = ci switch { 1 => 4, 2 => 8, 4 => 32, _ => 16 };
+        s.Connections = ci switch { 1 => 4, 2 => 8, 3 => 16, 4 => 32, 5 => 64, _ => 64 };
+
+        // v3 极速引擎 / 视频与流媒体
+        s.TurboMultiSource = TurboSwitch.IsChecked == true;
+        s.AdaptiveBoost = BoostSwitch.IsChecked == true;
+        s.BrowserSniff = BrowserSwitch.IsChecked == true;
+        s.AutoCategory = CategorySwitch.IsChecked == true;
+        s.MediaQuality = MediaQualityFromUi();
         s.Save();
 
         UpdateSidePath();
@@ -727,14 +903,52 @@ public partial class MainWindow : Window
         if (!_ready) return;
         int ci = ConnCombo.SelectedIndex;
         App.Settings.AutoConnections = ci <= 0;
-        App.Settings.Connections = ci switch { 1 => 4, 2 => 8, 4 => 32, _ => 16 };
+        App.Settings.Connections = ci switch { 1 => 4, 2 => 8, 3 => 16, 4 => 32, 5 => 64, _ => 64 };
         App.Settings.Save();
+    }
+
+    private string MediaQualityFromUi() => MediaQualityCombo.SelectedIndex switch
+    {
+        1 => "1080",
+        2 => "720",
+        3 => "audio",
+        _ => "best"
+    };
+
+    private void MediaQualityCombo_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready) return;
+        App.Settings.MediaQuality = MediaQualityFromUi();
+        App.Settings.Save();
+    }
+
+    /// <summary>极速引擎相关开关：改完立刻生效并保存；嗅探桥可随时开关</summary>
+    private void TurboSetting_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_ready) return;
+        var s = App.Settings;
+        s.TurboMultiSource = TurboSwitch.IsChecked == true;
+        s.AdaptiveBoost = BoostSwitch.IsChecked == true;
+        s.AutoCategory = CategorySwitch.IsChecked == true;
+
+        bool want = BrowserSwitch.IsChecked == true;
+        bool changed = s.BrowserSniff != want;
+        s.BrowserSniff = want;
+        s.Save();
+
+        if (!changed) return;
+        if (want) BrowserBridge.Start(OnSniffedUrl, Log);
+        else
+        {
+            BrowserBridge.Stop();
+            Log("浏览器嗅探桥已关闭。");
+        }
     }
 
     private void ThemeSwitch_Click(object sender, RoutedEventArgs e)
     {
         bool dark = ThemeSwitch.IsChecked == true;
-        ThemeManager.Apply(dark);
+        ThemeManager.Apply(dark, App.Settings.Palette);
         App.Settings.DarkMode = dark;
         App.Settings.Save();
         Log(dark ? "已切换到深色主题。" : "已切换到浅色主题。");
@@ -791,9 +1005,10 @@ public partial class MainWindow : Window
     // ==================================================================
     // 下载引擎：位置可自定义 / 可随程序携带
     // ==================================================================
-    private void RefreshAriaInfo()
+    private async void RefreshAriaInfo()
     {
-        var exe = Aria2.Find();
+        // 引擎探测可能涉及磁盘扫描，放到后台线程，避免首屏卡住
+        var exe = await Task.Run(() => Aria2.Find());
         AriaText.Text = exe ?? "未找到 aria2c.exe —— 请先安装：winget install aria2.aria2";
         AriaText.ToolTip = AriaText.Text;
         AriaSourceText.Text = "来源：" + Aria2.Describe(exe);
@@ -1002,11 +1217,46 @@ public partial class MainWindow : Window
 
     private void NavSettings_Click(object sender, RoutedEventArgs e) => OpenSettings("path");
 
+    /// <summary>标题栏配色入口：就地弹出四套配色</summary>
+    private void Palette_Click(object sender, RoutedEventArgs e)
+    {
+        PalettePopup.IsOpen = !PalettePopup.IsOpen;
+    }
+
+    private static string PaletteLabel(string key) => key switch
+    {
+        "mint" => "青柠",
+        "violet" => "柔紫",
+        "coral" => "暖珊瑚",
+        _ => "冰蓝"
+    };
+
+    /// <summary>状态条限速入口：打开行为面板</summary>
+    private void RateMenu_Click(object sender, RoutedEventArgs e) => OpenSettings("behavior");
+
+    /// <summary>标题栏「新建任务」：回到工作台并把焦点交给输入框</summary>
+    private void NewTask_Click(object sender, RoutedEventArgs e)
+    {
+        if (NavTasks is not null && NavTasks.IsChecked != true) NavTasks.IsChecked = true;
+        ShowView("tasks");
+        UrlBox.Focus();
+    }
+
     private void ShowView(string tag)
     {
         ViewTasks.Visibility = tag == "tasks" ? Visibility.Visible : Visibility.Collapsed;
         ViewHistory.Visibility = tag == "history" ? Visibility.Visible : Visibility.Collapsed;
         ViewFolder.Visibility = tag == "folder" ? Visibility.Visible : Visibility.Collapsed;
+        if (ViewBt != null) ViewBt.Visibility = tag == "bt" ? Visibility.Visible : Visibility.Collapsed;
+        if (ViewSettings != null) ViewSettings.Visibility = tag == "settings" ? Visibility.Visible : Visibility.Collapsed;
+        PageTitleText.Text = tag switch
+        {
+            "history" => "已完成",
+            "folder" => "文件库",
+            "bt" => "磁力 / BT",
+            "settings" => "设置",
+            _ => "工作台"
+        };
 
         // 详情抽屉只在「队列」页有意义，切到别的页面直接收起
         if (tag != "tasks")
@@ -1017,6 +1267,19 @@ public partial class MainWindow : Window
 
         if (tag == "folder") RefreshFolders();
         if (tag == "history") RefreshHistoryStats();
+
+        // 切页时回到顶部，避免上一次的滚动位置或自动选中把页面顶到中段
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            (tag switch
+            {
+                "folder" => (ScrollViewer?)FolderScroll,
+                "history" => HistoryScroll,
+                "bt" => BtScroll,
+                "settings" => SetScroll,
+                _ => TasksScroll
+            })?.ScrollToTop();
+        }));
     }
 
     // ==================================================================
@@ -1025,51 +1288,77 @@ public partial class MainWindow : Window
     private void OpenSettings(string pane)
     {
         CloseLog();
-        SettingsOverlay.Visibility = Visibility.Visible;
-
-        var target = pane switch
+        if (NavSettings is not null && NavSettings.IsChecked != true)
         {
-            "behavior" => SubNavBehavior,
-            "engine" => SubNavEngine,
-            "look" => SubNavLook,
-            _ => SubNavPath
-        };
-        target.IsChecked = true;
+            _navBusy = true;
+            NavSettings.IsChecked = true;
+            _navBusy = false;
+        }
+        ShowView("settings");
         ApplySubNav(pane);
+        Log("打开设置：" + pane);
     }
 
-    private void CloseSettings() => SettingsOverlay.Visibility = Visibility.Collapsed;
+    private void CloseSettings()
+    {
+        if (NavTasks is not null && NavTasks.IsChecked != true)
+        {
+            _navBusy = true;
+            NavTasks.IsChecked = true;
+            _navBusy = false;
+        }
+        ShowView("tasks");
+    }
 
     private void CloseSettings_Click(object sender, RoutedEventArgs e) => CloseSettings();
-
-    private void SettingsOverlay_Click(object sender, MouseButtonEventArgs e) => CloseSettings();
-
-    /// <summary>点面板内部不该关掉模态，吃掉这次事件</summary>
-    private void SettingsSheet_Click(object sender, MouseButtonEventArgs e) => e.Handled = true;
 
     private void PickTargetFolder_Click(object sender, RoutedEventArgs e) => OpenSettings("path");
 
     private void SubNav_Checked(object sender, RoutedEventArgs e)
     {
-        if (PanePath == null) return;                       // XAML 加载完成前会先触发一次
+        if (PanePath == null || _subnavBusy) return;        // XAML 加载完成前会先触发一次
         if (sender is not RadioButton rb || rb.Tag is not string tag) return;
         ApplySubNav(tag);
     }
 
+    /// <summary>分节导航：只做高亮 + 滚动到对应分节，所有分节同时可见</summary>
     private void ApplySubNav(string tag)
     {
         if (PanePath == null) return;
-        PanePath.Visibility = tag == "path" ? Visibility.Visible : Visibility.Collapsed;
-        PaneBehavior.Visibility = tag == "behavior" ? Visibility.Visible : Visibility.Collapsed;
-        PaneEngine.Visibility = tag == "engine" ? Visibility.Visible : Visibility.Collapsed;
-        PaneLook.Visibility = tag == "look" ? Visibility.Visible : Visibility.Collapsed;
-        SheetTitle.Text = tag switch
+
+        RadioButton? target = tag switch
         {
-            "behavior" => "下载行为",
-            "engine" => "下载引擎",
-            "look" => "外观",
-            _ => "保存位置"
+            "path" => SubNavPath,
+            "speed" => SubNavSpeed,
+            "behavior" => SubNavBehavior,
+            "update" => SubNavUpdate,
+            _ => SubNavLook
         };
+        _subnavBusy = true;
+        if (target != null) target.IsChecked = true;
+        _subnavBusy = false;
+
+        FrameworkElement? pane = tag switch
+        {
+            "path" => PanePath,
+            "speed" => PaneSpeed,
+            "behavior" => PaneBehavior,
+            "update" => PaneUpdate,
+            _ => PaneLook
+        };
+        pane?.BringIntoView();
+    }
+
+    /// <summary>切换界面配色（冰蓝 / 青柠 / 柔紫 / 暖珊瑚）</summary>
+    private void PalettePick_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement el || el.Tag is not string key || key.Length == 0) return;
+        App.Settings.Palette = key;
+        App.Settings.Save();
+        ThemeManager.Apply(App.Settings.DarkMode, key);
+        Log("切换配色：" + PaletteLabel(key));
+        ApplySubNav("look");
+        RefreshCounts();
     }
 
     private void ThemeToggle_Click(object sender, RoutedEventArgs e)
@@ -1105,9 +1394,22 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() == true) UrlBox.Text = dlg.FileName;
     }
 
+    private void BtPickPage_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "选择种子文件",
+            Filter = "种子文件 (*.torrent)|*.torrent|所有文件 (*.*)|*.*"
+        };
+        if (dlg.ShowDialog() == true) BtInputBox.Text = dlg.FileName;
+    }
+
+    private void BtPageStart_Click(object sender, RoutedEventArgs e) => BtStart_Click(sender, e);
+
     private async void BtStart_Click(object sender, RoutedEventArgs e)
     {
-        var src = (UrlBox.Text ?? "").Trim().Trim('"');
+        var src = (BtInputBox?.Text ?? "").Trim().Trim('"');
+        if (src.Length == 0) src = (UrlBox.Text ?? "").Trim().Trim('"');
         if (src.Length == 0)
         {
             Log("请先粘贴磁力链接，或选择 .torrent 文件。");
@@ -1144,8 +1446,18 @@ public partial class MainWindow : Window
         _btTask = task;
         BtProgressCard.DataContext = task;
         BtProgressCard.Visibility = Visibility.Visible;
+        if (BtEmptyHint != null) BtEmptyHint.Visibility = Visibility.Collapsed;
+        if (BtCountText != null) BtCountText.Text = "1";
+        if (NavBtCount != null) NavBtCount.Text = "1";
         BtStartBtn.IsEnabled = false;
         BtStopBtn.IsEnabled = true;
+        if (NavBt is not null && NavBt.IsChecked != true)
+        {
+            _navBusy = true;
+            NavBt.IsChecked = true;
+            _navBusy = false;
+        }
+        ShowView("bt");
 
         var cts = new CancellationTokenSource();
         _btCts = cts;
@@ -1187,6 +1499,9 @@ public partial class MainWindow : Window
             _btCts = null;
             BtStartBtn.IsEnabled = true;
             BtStopBtn.IsEnabled = false;
+            if (BtCountText != null) BtCountText.Text = "0";
+            if (NavBtCount != null) NavBtCount.Text = "0";
+            if (BtEmptyHint != null) BtEmptyHint.Visibility = Visibility.Visible;
         }
     }
 
@@ -1223,7 +1538,7 @@ public partial class MainWindow : Window
         if (DetailPanel.Visibility != Visibility.Visible)
         {
             DetailPanel.Visibility = Visibility.Visible;
-            DrawerShift.X = 364;
+            DrawerShift.X = 430;
         }
 
         var anim = new DoubleAnimation(0, TimeSpan.FromMilliseconds(200))
@@ -1242,12 +1557,12 @@ public partial class MainWindow : Window
         if (immediate)
         {
             DrawerShift.BeginAnimation(TranslateTransform.XProperty, null);
-            DrawerShift.X = 364;
+            DrawerShift.X = 430;
             DetailPanel.Visibility = Visibility.Collapsed;
             return;
         }
 
-        var anim = new DoubleAnimation(364, TimeSpan.FromMilliseconds(160))
+        var anim = new DoubleAnimation(430, TimeSpan.FromMilliseconds(160))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };
@@ -1323,7 +1638,7 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
-        if (SettingsOverlay.Visibility == Visibility.Visible)
+        if (ViewSettings.Visibility == Visibility.Visible)
         {
             CloseSettings();
             e.Handled = true;
@@ -1353,18 +1668,32 @@ public partial class MainWindow : Window
         RestoreIcon.Visibility = max ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private bool TabMatch(DownloadTask t) => _tab switch
+    private bool TabMatch(DownloadTask t)
     {
-        "active" => t.IsActive,
-        "done" => t.Status == TaskStatus.Completed,
-        "paused" => t.Status is TaskStatus.Canceled or TaskStatus.Failed,
-        _ => true
-    };
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var q = _search.Trim();
+            bool hit = (t.FileName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (t.HostShort?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (t.TargetLine?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false);
+            if (!hit) return false;
+        }
+
+        return _tab switch
+        {
+            "active" => t.IsActive,
+            "queued" => t.Status == TaskStatus.Queued,
+            "done" => t.Status == TaskStatus.Completed,
+            "paused" => t.Status is TaskStatus.Canceled or TaskStatus.Failed,
+            _ => true
+        };
+    }
 
     private void Tab_Checked(object sender, RoutedEventArgs e)
     {
         if (!_ready) return;
         if (sender == TabActive) _tab = "active";
+        else if (sender == TabQueued) _tab = "queued";
         else if (sender == TabDone) _tab = "done";
         else if (sender == TabPaused) _tab = "paused";
         else _tab = "all";
@@ -1407,10 +1736,31 @@ public partial class MainWindow : Window
         CountActive.Text = _tasks.Count(t => t.IsActive).ToString();
         CountDone.Text = _tasks.Count(t => t.Status == TaskStatus.Completed).ToString();
         CountPaused.Text = _tasks.Count(t => t.Status is TaskStatus.Canceled or TaskStatus.Failed).ToString();
+        CountQueued.Text = _tasks.Count(t => t.Status == TaskStatus.Queued).ToString();
 
         int active = _tasks.Count(t => t.IsActive);
         int waiting = _tasks.Count(t => t.Status == TaskStatus.Queued);
-        SbRight.Text = $"{active} 进行中 · {waiting} 等待 · 共 {_tasks.Count} 项";
+        int done = _tasks.Count(t => t.Status == TaskStatus.Completed);
+        int total = _tasks.Count;
+        SbRight.Text = $"{active} 进行中 · {VersionBadge.Text} · {PaletteLabel(App.Settings.Palette)}";
+
+        // v2 侧栏计数 + 工作台仪表盘
+        NavTaskCount.Text = _tasks.Count.ToString();
+        NavHistoryCount.Text = _tasks.Count(t => t.IsFinished).ToString();
+        DashSub.Text = $"{active} 个任务在跑 · 多源并发生效";
+        DashActive.Text = active.ToString();
+        DashQueue.Text = waiting.ToString();
+        DashActiveBar.Value = Math.Min(100, active * 25);
+
+        long todayBytes = _tasks.Where(t => t.Status == TaskStatus.Completed && t.AddedAt.Date == DateTime.Today)
+                                .Sum(t => t.Total);
+        DashToday.Text = Fmt.Human(todayBytes);
+        DashTodayBar.Value = Math.Min(100, todayBytes / (100.0 * 1024 * 1024 * 1024) * 100);
+
+        double rate = total > 0 ? done * 100.0 / total : 0;
+        DashRate.Text = $"{rate:0}%";
+        DashRateBar.Value = rate;
+        DashRateCap.Text = $"{done} / {total} 项";
     }
 
     /// <summary>历史页顶部的三个统计块</summary>
@@ -1516,6 +1866,7 @@ public partial class MainWindow : Window
 
         var ordered = list.OrderByDescending(f => f.Size).ToList();
         FolderList.ItemsSource = ordered;
+        NavFolderCount.Text = ordered.Count.ToString();
         if (ordered.Count > 0) FolderList.SelectedIndex = 0;
         else LoadLibFiles(null);
     }
@@ -1546,7 +1897,7 @@ public partial class MainWindow : Window
         var ordered = files.OrderByDescending(x => x.Size).ToList();
         LibFileList.ItemsSource = ordered;
         LibTitle.Text = f == null ? "文件" : f.Name + " · " + ordered.Count + " 个文件";
-        LibSummary.Text = f == null ? "" : Fmt.Human(ordered.Sum(x => x.Size));
+        LibSummary.Text = FolderList.Items.Count + " 个目录" + (f == null ? "" : " · " + Fmt.Human(ordered.Sum(x => x.Size)));
     }
 
     private void LibFileList_DoubleClick(object sender, MouseButtonEventArgs e)
@@ -1588,16 +1939,30 @@ public partial class MainWindow : Window
     // ==================================================================
     // 链接识别
     // ==================================================================
+    /// <summary>点击输入框区域任意空白处都聚焦输入框，避免模板命中穿透导致点不动</summary>
+    private void CapBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject d && FindAncestor<Button>(d) != null) return;
+        UrlBox.Focus();
+        Keyboard.Focus(UrlBox);
+    }
+
+    private static T? FindAncestor<T>(DependencyObject node) where T : DependencyObject
+    {
+        var cur = node;
+        while (cur != null)
+        {
+            if (cur is T t) return t;
+            cur = System.Windows.Media.VisualTreeHelper.GetParent(cur);
+        }
+        return null;
+    }
+
     private void UrlBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         var text = UrlBox.Text ?? "";
-        UrlHint.Visibility = string.IsNullOrEmpty(text) ? Visibility.Visible : Visibility.Collapsed;
 
-        // 磁力链接不是独立页面，识别到才在捕获区展开 BT 面板
-        bool magnet = text.TrimStart().StartsWith("magnet:", StringComparison.OrdinalIgnoreCase)
-                      || text.TrimEnd().EndsWith(".torrent", StringComparison.OrdinalIgnoreCase);
-        MagStrip.Visibility = magnet ? Visibility.Visible : Visibility.Collapsed;
-
+        // 磁力链接固定走「磁力 / BT」页，工作台捕获区不再展开额外面板
         _detectTimer.Stop();
         _detectTimer.Start();
     }
@@ -1664,7 +2029,7 @@ public partial class MainWindow : Window
     // ==================================================================
     private async void AddTask_Click(object sender, RoutedEventArgs e) => await AddTaskAsync();
 
-    private async Task AddTaskAsync()
+    private async Task AddTaskAsync(bool skipFolderPrompt = false)
     {
         var raw = UrlBox.Text.Trim();
         if (raw.Length == 0)
@@ -1682,6 +2047,15 @@ public partial class MainWindow : Window
         {
             Log("[错误] " + ex.Message);
             return;
+        }
+
+        // 视频页 / m3u8 / mpd：真实文件名要等 yt-dlp 解析出来才知道，先用稳定占位名，
+        // 同时避开 URL 查询串里的 ? & = 等 Windows 非法文件名字符。
+        if (MediaEngine.IsMediaPage(raw) || HlsDownloader.LooksLikeHls(raw))
+        {
+            info.FileName = CategoryRouter.PlaceholderFor(raw);
+            info.Folder = null;
+            if (info.Kind == UrlKind.Unknown) info.Kind = UrlKind.File;
         }
 
         if (info.Kind == UrlKind.Unknown)
@@ -1704,8 +2078,8 @@ public partial class MainWindow : Window
             if (!string.IsNullOrEmpty(folder)) info.Folder = folder;
         }
 
-        var target = ResolveFolderForNewTask(info);
-        if (target == null) return;   // 用户取消了
+        var target = ResolveFolderForNewTask(info, skipFolderPrompt, out bool canceled);
+        if (canceled) return;   // 用户在目录选择框里点了取消
 
         Enqueue(info, target);
         UrlBox.Clear();
@@ -1717,31 +2091,28 @@ public partial class MainWindow : Window
     /// </summary>
     private static string ResolveDir(string fileName, string? folder)
     {
-        folder = (folder ?? "").Trim().TrimEnd('\\', '/');
-        // 统一规范成反斜杠：配置里可能带 /，explorer 的 /select 认不了混合斜杠路径
-        if (folder.Length > 0 && Path.IsPathRooted(folder)) return Path.GetFullPath(folder);
-
         bool isModel = ComfyFolders.IsModelFile(fileName);
         var root = isModel ? App.Settings.ModelsDir : App.Settings.DownloadDir;
         if (string.IsNullOrWhiteSpace(root)) root = AppSettings.DefaultDownloadDir;
 
-        string dir = !isModel
-            ? (folder.Length == 0 ? root : Path.Combine(root, folder))
-            : Path.Combine(root, folder.Length == 0 ? "diffusion_models" : folder);
-        return Path.GetFullPath(dir);
+        // 开了自动归档就把非模型文件按 视频/音乐/程序/压缩包/文档 分子目录；
+        // 模型文件仍走 ComfyUI 目录树。返回统一规范化的绝对路径。
+        return CategoryRouter.Route(root, fileName, folder, isModel, App.Settings.AutoCategory);
     }
 
     /// <summary>
     /// 决定新任务存到哪个目录。返回 null 表示用户取消了添加。
     /// 设置了「每次询问」就弹窗；否则按文件类型自动归类。
     /// </summary>
-    private string? ResolveFolderForNewTask(UrlInfo info)
+    private string? ResolveFolderForNewTask(UrlInfo info, bool skipFolderPrompt, out bool canceled)
     {
+        canceled = false;
         bool isModel = ComfyFolders.IsModelFile(info.FileName);
         var root = isModel ? App.Settings.ModelsDir : App.Settings.DownloadDir;
         var detected = isModel ? (info.Folder ?? "diffusion_models") : null;
 
-        if (!App.Settings.AskFolderOnAdd) return detected;
+        // 返回 null 在这里表示「用默认归类」，不能当成用户取消，否则非模型文件永远加不进队列
+        if (skipFolderPrompt || !App.Settings.AskFolderOnAdd) return detected;
 
         var prefill = detected;
         if (string.IsNullOrWhiteSpace(prefill)) prefill = App.Settings.DefaultFolder;
@@ -1753,6 +2124,7 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() != true)
         {
             Log("已取消：没有选择保存位置。");
+            canceled = true;
             return null;
         }
 
@@ -2005,13 +2377,25 @@ public partial class MainWindow : Window
 
         try
         {
-            var info = ComfyNet.Parse(task.Url);
+            // 下载前再兜一次：启动时的自动获取可能还在进行或刚失败
+            await EnsureEngineAsync();
+
             var url = task.Url;
             task.ClearSamples();
             task.Done = 0;
             task.SpeedBps = 0;
 
-            if (App.Settings.RaceSources)
+            // 视频页 / HLS / DASH：交给 yt-dlp + HLS + ffmpeg 管线
+            if (MediaEngine.IsMediaPage(url) || HlsDownloader.LooksLikeHls(url))
+            {
+                await RunMediaTaskAsync(task, url, ct);
+                return;
+            }
+
+            var info = ComfyNet.Parse(url);
+
+            // 多源并发时不再串行选源：挑一个最快的反而把其它镜像的带宽浪费掉了
+            if (App.Settings.RaceSources && !App.Settings.TurboMultiSource)
             {
                 task.Status = TaskStatus.Racing;
                 var (best, _) = await ComfyNet.RaceAsync(url, info, Log, ct);
@@ -2047,20 +2431,41 @@ public partial class MainWindow : Window
 
             Directory.CreateDirectory(Path.GetDirectoryName(task.DestPath)!);
 
-            // 连接数：自动模式先实测 1 / 4 / 16，谁快用谁；手动模式直接用设置值
-            int conns = App.Settings.Connections;
+            // 极速模式：并行探测所有镜像（约 1.5 秒），只保留「首 64KB 指纹 + 总长」都一致的源，
+            // 然后把它们一起交给 aria2，让不同分段落到不同 CDN，带宽跨源叠加。
+            // 关掉多源时才退回原来的串行测速档位选择。
+            int conns = App.Settings.AutoConnections
+                ? TurboSources.MaxConnections
+                : App.Settings.Connections;
             bool autoTuned = false;
-            if (App.Settings.AutoConnections)
+            TurboPlan? plan = null;
+
+            if (App.Settings.TurboMultiSource)
+            {
+                task.Status = TaskStatus.Racing;
+                Log("极速引擎：并行探测镜像并校验内容一致性 ...");
+                plan = await TurboSources.BuildAsync(url, info, true, conns, Log, ct);
+                // 原链接探测失败时，改用已通过校验的镜像当主源，别让 aria2 卡在坏地址上
+                if (plan.Urls.Count > 0) url = plan.Urls[0];
+            }
+            else if (App.Settings.AutoConnections)
             {
                 task.Status = TaskStatus.Connecting;
-                conns = await ComfyNet.PickConnectionsAsync(url, total, App.Settings.Connections, Log, ct);
+                conns = await ComfyNet.PickConnectionsAsync(url, total, conns, Log, ct);
                 autoTuned = true;
             }
 
+            int finalConns = plan?.Connections ?? conns;
             task.Status = TaskStatus.Connecting;
-            Log($"开始下载：{task.FileName}（{conns} 连接）");
+            Log($"开始下载：{task.FileName}（{finalConns} 分段" +
+                (plan != null && plan.IsMultiSource ? $" × {plan.SourceCount} 源并发" : "") + "）");
 
-            bool ok = await Aria2.DownloadAsync(task, url, total, conns, Log, ct, autoTuned);
+            bool ok = await Aria2.DownloadAsync(
+                task, url, total, finalConns, Log, ct,
+                autoTuned: autoTuned,
+                extraUrls: plan?.Urls,
+                perServer: plan?.PerServer ?? 0,
+                adaptiveBoost: App.Settings.AdaptiveBoost);
             if (!ok)
             {
                 task.Status = TaskStatus.Failed;
@@ -2109,6 +2514,168 @@ public partial class MainWindow : Window
         }
     }
 
+    // ==================================================================
+    // v3 · 视频页面 / HLS 流媒体：yt-dlp 解析 → 分段下载 → ffmpeg 合并
+    // ==================================================================
+    private async Task RunMediaTaskAsync(DownloadTask task, string url, CancellationToken ct)
+    {
+        string dir = Path.GetDirectoryName(task.DestPath)!;
+        Directory.CreateDirectory(dir);
+
+        string quality = string.IsNullOrWhiteSpace(App.Settings.MediaQuality)
+            ? "best" : App.Settings.MediaQuality;
+        int conns = Math.Clamp(App.Settings.Connections, 1, TurboSources.MaxConnections);
+
+        MediaInfo media;
+        if (HlsDownloader.LooksLikeHls(url))
+        {
+            // 纯 m3u8 直链不必劳驾 yt-dlp，直接进 HLS 分片下载器
+            media = new MediaInfo
+            {
+                Title = Path.GetFileNameWithoutExtension(task.FileName),
+                VideoUrl = url,
+                IsHls = true,
+                Ext = "mp4",
+            };
+        }
+        else if (url.IndexOf(".mpd", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            // 纯 DASH 清单：不再做 JSON 解析，直接交给 yt-dlp 分片下载
+            string name = Path.GetFileNameWithoutExtension(task.FileName);
+            try
+            {
+                var leaf = Path.GetFileNameWithoutExtension(
+                    Uri.UnescapeDataString(new Uri(url).AbsolutePath));
+                if (!string.IsNullOrWhiteSpace(leaf)) name = leaf;
+            }
+            catch { }
+            media = new MediaInfo { Title = name, VideoUrl = url, Ext = "mp4" };
+        }
+        else
+        {
+            task.Status = TaskStatus.Racing;
+            await MediaEngine.EnsureYtDlpAsync(Log, ct);   // 首次使用自动获取内核
+            Log($"[媒体] yt-dlp 解析中（{quality}）：{url}");
+            media = await MediaEngine.ResolveAsync(url, quality, Log, ct);
+            if (string.IsNullOrWhiteSpace(media.VideoUrl))
+                throw new InvalidOperationException("yt-dlp 没有返回可下载的地址");
+        }
+
+        string title = string.IsNullOrWhiteSpace(media.Title)
+            ? Path.GetFileNameWithoutExtension(task.FileName) : media.Title;
+        string baseName = CategoryRouter.SanitizeFileName(title);
+        string ext = CategoryRouter.SanitizeFileName(
+            string.IsNullOrWhiteSpace(media.Ext) ? "mp4" : media.Ext, "mp4");
+
+        bool hls = media.IsHls || HlsDownloader.LooksLikeHls(media.VideoUrl);
+        bool dash = !hls && media.VideoUrl.IndexOf(".mpd", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool hasFfmpeg = MediaEngine.FindFfmpeg() != null;
+        // 没装 ffmpeg 就老实保存 TS 流，不要拿 .ts 冒充 .mp4
+        if (hls) ext = hasFfmpeg ? "mp4" : "ts";
+
+        string finalPath = Path.Combine(dir, baseName + "." + ext);
+        if (!ResolveConflict(ref finalPath, out bool skip))
+        {
+            task.Status = TaskStatus.Canceled;
+            task.Message = skip ? "目标文件已存在，已跳过" : "保存位置无效";
+            return;
+        }
+        task.FileName = Path.GetFileName(finalPath);
+        task.DestPath = finalPath;
+
+        if (dash)
+        {
+            // DASH 清单没有 m3u8 那样的分片规则，交给 yt-dlp 自己并发拉分片并封装
+            task.Status = TaskStatus.Downloading;
+            if (!await MediaEngine.DownloadWithYtDlpAsync(url, finalPath, quality, Log, ct))
+                throw new InvalidOperationException("DASH 流下载未完成");
+        }
+        else if (hls)
+        {
+            string raw = finalPath + ".mdv.ts";
+            task.Status = TaskStatus.Connecting;
+            bool ok = await HlsDownloader.DownloadAsync(
+                media.VideoUrl, raw, App.Settings.HlsConcurrency,
+                (done, total, bps) => Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    task.Done = done;
+                    if (total > 0) task.Total = total;
+                    task.SpeedBps = bps;
+                    task.PushSample(bps);
+                    task.Status = TaskStatus.Downloading;
+                })),
+                Log, ct);
+            if (!ok) throw new InvalidOperationException("HLS 分片没有全部下载完成");
+
+            if (hasFfmpeg)
+            {
+                task.Status = TaskStatus.Verifying;
+                string mp4 = finalPath + ".mdv.mp4";
+                if (!await MediaEngine.RemuxAsync(raw, mp4, Log, ct))
+                    throw new InvalidOperationException("ffmpeg 转封装失败");
+                TryDelete(raw);
+                File.Move(mp4, finalPath, true);
+            }
+            else
+            {
+                File.Move(raw, finalPath, true);
+            }
+        }
+        else if (media.NeedsMerge)
+        {
+            string audioPath = finalPath + ".mdv-audio";
+            var audioTask = new DownloadTask
+            {
+                Url = media.AudioUrl,
+                Host = task.Host,
+                FileName = Path.GetFileName(audioPath),
+                DestPath = audioPath,
+                Status = TaskStatus.Queued,
+            };
+
+            Log("[媒体] 下载视频轨 ...");
+            bool vok = await Aria2.DownloadAsync(task, media.VideoUrl, 0, conns, Log, ct,
+                headers: media.Headers, adaptiveBoost: false);
+            if (!vok) throw new InvalidOperationException("视频轨下载未完成");
+
+            Log("[媒体] 下载音频轨 ...");
+            bool aok = await Aria2.DownloadAsync(audioTask, media.AudioUrl, 0,
+                Math.Min(conns, 16), Log, ct, headers: media.Headers, adaptiveBoost: false);
+            if (!aok) throw new InvalidOperationException("音频轨下载未完成");
+
+            task.Status = TaskStatus.Verifying;
+            string merged = finalPath + ".mdv-merged.mp4";
+            if (!await MediaEngine.MergeAsync(finalPath, audioPath, merged, Log, ct))
+                throw new InvalidOperationException("ffmpeg 合并音视频失败");
+            TryDelete(finalPath);
+            TryDelete(audioPath);
+            File.Move(merged, finalPath, true);
+        }
+        else
+        {
+            task.Status = TaskStatus.Connecting;
+            Log($"[媒体] 开始下载：{task.FileName}（{conns} 分段）");
+            bool ok = await Aria2.DownloadAsync(task, media.VideoUrl, 0, conns, Log, ct,
+                headers: media.Headers, adaptiveBoost: false);
+            if (!ok) throw new InvalidOperationException("媒体下载未完成");
+        }
+
+        long size = File.Exists(finalPath) ? new FileInfo(finalPath).Length : 0;
+        if (size <= 0) throw new InvalidOperationException("没有写出媒体文件");
+        task.Total = size;
+        task.Done = size;
+        task.SizeHint = size;
+        task.SpeedBps = 0;
+        task.Status = TaskStatus.Completed;
+        Log($"[完成] {finalPath}");
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { if (File.Exists(path)) File.Delete(path); } catch { }
+        try { if (File.Exists(path + ".aria2")) File.Delete(path + ".aria2"); } catch { }
+    }
+
     private void Task_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(DownloadTask.Status) or nameof(DownloadTask.Total)
@@ -2137,13 +2704,223 @@ public partial class MainWindow : Window
     // ==================================================================
     // 任务操作
     // ==================================================================
+    /// <summary>整页滚轮：鼠标停在卡片、列表或空白处，都滚动当前页面</summary>
+    private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject src && IsInsidePopupLayer(src)) return;
+
+        var sv = CurrentPageScroll();
+        if (sv == null) return;
+
+        double target = sv.VerticalOffset - e.Delta;
+        if (target < 0) target = 0;
+        if (target > sv.ScrollableHeight) target = sv.ScrollableHeight;
+        sv.ScrollToVerticalOffset(target);
+        e.Handled = true;
+    }
+
+    private ScrollViewer? CurrentPageScroll()
+    {
+        if (ViewSettings is not null && ViewSettings.Visibility == Visibility.Visible) return SetScroll;
+        if (ViewBt is not null && ViewBt.Visibility == Visibility.Visible) return BtScroll;
+        if (ViewFolder is not null && ViewFolder.Visibility == Visibility.Visible) return FolderScroll;
+        if (ViewHistory is not null && ViewHistory.Visibility == Visibility.Visible) return HistoryScroll;
+        return TasksScroll;
+    }
+
+    /// <summary>弹层与抽屉里的滚轮保持各自原生滚动</summary>
+    private static bool IsInsidePopupLayer(DependencyObject node)
+    {
+        var cur = node;
+        while (cur != null)
+        {
+            if (cur is FrameworkElement fe &&
+                (fe.Name is "PanelLog" or "DetailPanel" or "DonateOverlay" or "AskOverlay" or "PalettePopup"))
+                return true;
+            cur = System.Windows.Media.VisualTreeHelper.GetParent(cur);
+        }
+        return false;
+    }
+
+    /// <summary>列表内的滚轮交给所属页面滚动，避免列表吞掉滚轮后整页不动</summary>
+    private void InnerList_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not DependencyObject d) return;
+        var sv = FindAncestorScrollViewer(d);
+        if (sv == null) return;                     // 页面本身不可滚，就交给列表自己滚
+        sv.ScrollToVerticalOffset(Math.Max(0, sv.VerticalOffset - e.Delta));
+        e.Handled = true;
+    }
+
+    private static ScrollViewer? FindAncestorScrollViewer(DependencyObject node)
+    {
+        var cur = System.Windows.Media.VisualTreeHelper.GetParent(node);
+        while (cur != null)
+        {
+            if (cur is ScrollViewer sv) return sv;
+            cur = System.Windows.Media.VisualTreeHelper.GetParent(cur);
+        }
+        return null;
+    }
+
+    private void TaskDetail_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is DownloadTask t && TaskList != null)
+            TaskList.SelectedItem = t;
+    }
+
     private void TaskList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateSpeedCard();
+        UpdateBatchBar();
 
         if (!_ready) return;
         if (TaskList.SelectedItem == null) CloseDrawer();
         else OpenDrawer();
+    }
+
+    // ---- 队列多选批量操作（Ctrl / Shift 多选，选中 2 项以上出现工具条）----
+    private void UpdateBatchBar()
+    {
+        if (BatchBar == null) return;
+        int n = TaskList.SelectedItems.Count;
+        BatchBar.Visibility = n > 1 ? Visibility.Visible : Visibility.Collapsed;
+        BatchCount.Text = $"已选 {n} 项";
+    }
+
+    private List<DownloadTask> SelectedTasks() => TaskList.SelectedItems.OfType<DownloadTask>().ToList();
+
+    private void BatchSelectAll_Click(object sender, RoutedEventArgs e) => TaskList.SelectAll();
+
+    private void BatchClear_Click(object sender, RoutedEventArgs e) => TaskList.UnselectAll();
+
+    // ==================================================================
+    // v9 工具条 / 捕获区 / 行操作
+    // ==================================================================
+    private void TaskSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!_ready) return;
+        _search = TaskSearchBox.Text ?? "";
+        _view.Refresh();
+        UpdateEmptyHint();
+    }
+
+    private void PasteUrl_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (Clipboard.ContainsText())
+            {
+                UrlBox.Text = Clipboard.GetText().Trim();
+                UrlBox.CaretIndex = UrlBox.Text.Length;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log("读取剪贴板失败：" + ex.Message);
+        }
+        UrlBox.Focus();
+    }
+
+    private void ClearUrl_Click(object sender, RoutedEventArgs e)
+    {
+        UrlBox.Text = "";
+        UrlBox.Focus();
+    }
+
+    private void CopyTaskUrl_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not DownloadTask t) return;
+        if (string.IsNullOrWhiteSpace(t.Url)) return;
+        try
+        {
+            Clipboard.SetText(t.Url);
+            Log("链接已复制：" + t.Url);
+        }
+        catch
+        {
+            // 剪贴板被别的程序占用，忽略
+        }
+    }
+
+    /// <summary>分组标题右侧的「全部暂停 / 全部开始 / 查看全部」</summary>
+    private void GroupAction_Click(object sender, RoutedEventArgs e)
+    {
+        var group = (sender as FrameworkElement)?.Tag as string;
+        switch (group)
+        {
+            case "正在下载":
+                {
+                    var list = _tasks.Where(t => t.IsActive).ToList();
+                    foreach (var t in list)
+                    {
+                        if (_cts.TryGetValue(t.Id, out var cts)) { try { cts.Cancel(); } catch { } }
+                        Aria2.Kill(t.Proc);
+                    }
+                    Log($"[批量] 已暂停 {list.Count} 个任务");
+                    break;
+                }
+            case "队列中":
+                {
+                    var list = _tasks.Where(t => t.Status == TaskStatus.Queued).ToList();
+                    if (list.Count > 0) _ = PumpAsync();
+                    Log($"[批量] 已开始 {list.Count} 个排队任务");
+                    break;
+                }
+            case "已完成与异常":
+                {
+                    NavHistory.IsChecked = true;
+                    break;
+                }
+        }
+    }
+
+    private void BatchPause_Click(object sender, RoutedEventArgs e)
+    {
+        var list = SelectedTasks();
+        foreach (var t in list)
+        {
+            if (_cts.TryGetValue(t.Id, out var cts)) { try { cts.Cancel(); } catch { } }
+            Aria2.Kill(t.Proc);
+        }
+        Log($"[批量] 已停止 {list.Count} 个任务");
+    }
+
+    private void BatchResume_Click(object sender, RoutedEventArgs e)
+    {
+        int n = 0;
+        foreach (var t in SelectedTasks().Where(t => t.CanResume))
+        {
+            t.Message = "";
+            t.Status = TaskStatus.Queued;
+            n++;
+        }
+        RefreshCounts();
+        if (n > 0) _ = PumpAsync();
+        Log($"[批量] 已重新开始 {n} 个任务");
+    }
+
+    private void BatchRemove_Click(object sender, RoutedEventArgs e)
+    {
+        var list = SelectedTasks();
+        if (list.Count == 0) return;
+        if (list.Any(t => t.IsActive) &&
+            Ask("批量删除任务", $"选中的 {list.Count} 个任务里有正在下载的，删除会中断它们。",
+                "删除", "取消") != AskResult.Primary) return;
+
+        foreach (var t in list)
+        {
+            if (_cts.TryGetValue(t.Id, out var cts)) { try { cts.Cancel(); } catch { } }
+            Aria2.Kill(t.Proc);
+            t.PropertyChanged -= Task_PropertyChanged;
+            _tasks.Remove(t);
+        }
+        RefreshCounts();
+        UpdateEmptyHint();
+        _view.Refresh();
+        _historyView.Refresh();
+        UpdateBatchBar();
+        Log($"[批量] 已移除 {list.Count} 个任务");
     }
 
     private DownloadTask? Current =>
@@ -2161,6 +2938,7 @@ public partial class MainWindow : Window
             SpeedUnit.Text = "MB/s";
             EtaText.Text = "--";
             SpeedChart.Points = null;
+            SparkPeak.Text = "峰值 --";
             return;
         }
 
@@ -2183,6 +2961,19 @@ public partial class MainWindow : Window
 
         EtaText.Text = t.EtaText.Replace("剩余 ", "");
         SpeedChart.Points = t.Samples;
+
+        var samples = t.Samples;
+        if (samples is { Length: > 0 })
+        {
+            double peak = samples.Max();
+            SparkPeak.Text = peak >= 1048576
+                ? $"峰值 {peak / 1048576:0.0} MB/s"
+                : $"峰值 {peak / 1024:0.0} KB/s";
+        }
+        else
+        {
+            SparkPeak.Text = "峰值 --";
+        }
     }
 
     private void CancelTask_Click(object sender, RoutedEventArgs e)

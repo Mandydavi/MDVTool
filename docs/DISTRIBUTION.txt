@@ -1,0 +1,60 @@
+MDV Tool 分发包说明
+================================================
+
+这个包是完整的离线包：主程序、下载组件、浏览器扩展、说明都在里面。
+首次使用不需要联网，也不需要安装 .NET 运行时，解压/安装后直接能用。
+
+【四种形态，挑一个用】
+
+1. MDVTool-<版本>-Setup.exe  标准安装包
+   双击 → 选安装目录 → 下一步。自动建开始菜单/桌面快捷方式，
+   并在「设置 → 应用」里提供卸载入口。适合普通用户。
+
+2. MDVTool-<版本>-Portable.zip  绿色便携版
+   解压到任意文件夹，双击里面的「MDV Tool.exe」即可。
+   不写注册表、不污染系统，删掉文件夹就等于卸载。
+
+3. MDVTool-<版本>-SingleFile.exe  单文件自解压
+   双击后自动在后台展开到 %LOCALAPPDATA%\MDV\MDVTool\ 并直接运行主程序。
+   接收方感知到的就是一个 exe，适合「只要一个文件」的分发场景。
+
+4. MDVTool-<版本>-Bundle.zip  工具包 / 合集
+   按 Main（主程序+引擎）、Installer（安装器）、BrowserExtension（浏览器扩展）
+   分目录放好，附 MANIFEST.json 清单。适合内网分发、装机合集、U 盘携带。
+
+【关于更新：离线 ≠ 不能更新】
+
+离线包只是「首次拿到就能跑」。之后只要能联网，主程序照常自动检查更新。
+连不上公网也有三条路：
+
+A. 公网推送（默认）
+   把 dist\ 里的 version.json 和 Setup.exe 传到任意静态托管（对象存储 / CDN /
+   GitHub Releases / 你的网站），客户端设置里的「更新源」填那个 version.json 地址。
+
+B. 内网 / 局域网推送（不连公网）
+   把 dist\ 里的文件放到内网 HTTP 服务器或共享盘，客户端「更新源」填：
+     http://192.168.x.x/mdv/version.json
+     \\NAS\share\mdv\version.json
+     D:\MDV-Updates\version.json
+   客户端支持 http(s)、UNC 共享路径、本地路径、file:// 四种形式。
+
+C. 完全离线推送（U 盘 / 人工拷贝）
+   用 MDVTool-<版本>-Update.zip（只含新主程序 + 组件 + version.json），
+   拷到 U 盘或共享盘，覆盖旧目录里的同名文件即可。
+   客户端「更新源」指向那个目录的 version.json，下次启动就会提示新版本。
+
+推送命令（在开发者机器上）：
+   push-update.bat \\NAS\share\mdv
+   push-update.bat D:\MDV-Updates
+它会把 version.json、安装包、便携版、离线更新包一起同步过去。
+
+version.json 里的 url 默认只写文件名，客户端会自动按 version.json 所在目录补全，
+所以同一份清单放到公网、内网或 U 盘都能直接用，不用改内容。
+
+【其它】
+
+- 下载组件（aria2c.exe）已随包分发，不会在首次启动时联网下载。
+- 视频解析用的 yt-dlp 仍会在第一次解析视频页时自动获取；要完全离线，
+  可把 yt-dlp.exe 和 ffmpeg.exe 放到主程序同目录再打包。
+- 浏览器扩展：Chrome/Edge 打开 chrome://extensions → 开发者模式 →
+  加载已解压的扩展程序 → 选 BrowserExtension 目录。

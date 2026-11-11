@@ -47,13 +47,16 @@ public sealed class AppSettings
     public bool AutoConnections { get; set; } = true;
 
     [JsonPropertyName("connections")]
-    public int Connections { get; set; } = 16;
+    public int Connections { get; set; } = TurboSources.MaxConnections;
 
     [JsonPropertyName("autoVerify")]
     public bool AutoVerify { get; set; } = true;
 
     [JsonPropertyName("darkMode")]
-    public bool DarkMode { get; set; }
+    public bool DarkMode { get; set; } = true;
+
+    /// <summary>界面配色：blue / mint / violet / coral</summary>
+    public string Palette { get; set; } = "blue";
 
     /// <summary>新建任务时是否弹窗询问保存位置</summary>
     [JsonPropertyName("askFolderOnAdd")]
@@ -90,6 +93,34 @@ public sealed class AppSettings
     /// <summary>下载前检查目标磁盘剩余空间</summary>
     [JsonPropertyName("checkDiskSpace")]
     public bool CheckDiskSpace { get; set; } = true;
+
+    // ==================================================================
+    // v3 · 极速引擎 / 视频与流媒体
+    // ==================================================================
+
+    /// <summary>多源并发：把同一文件的多个镜像一起交给 aria2，跨源叠加带宽</summary>
+    [JsonPropertyName("turboMultiSource")]
+    public bool TurboMultiSource { get; set; } = true;
+
+    /// <summary>速度明显下滑时自动加大分段并从断点重启（慢段补线程）</summary>
+    [JsonPropertyName("adaptiveBoost")]
+    public bool AdaptiveBoost { get; set; } = true;
+
+    /// <summary>HLS 分片并发数</summary>
+    [JsonPropertyName("hlsConcurrency")]
+    public int HlsConcurrency { get; set; } = 24;
+
+    /// <summary>视频清晰度：best / 1080 / 720 / audio</summary>
+    [JsonPropertyName("mediaQuality")]
+    public string MediaQuality { get; set; } = "best";
+
+    /// <summary>启动时开启浏览器嗅探桥（配合 BrowserExtension 扩展）</summary>
+    [JsonPropertyName("browserSniff")]
+    public bool BrowserSniff { get; set; } = true;
+
+    /// <summary>非模型文件按类型自动归档到 视频/音乐/程序/压缩包/文档 子目录</summary>
+    [JsonPropertyName("autoCategory")]
+    public bool AutoCategory { get; set; } = false;
 
     /// <summary>启动时静默检查更新</summary>
     [JsonPropertyName("autoCheckUpdate")]
@@ -134,7 +165,10 @@ public sealed class AppSettings
                 var s = JsonSerializer.Deserialize<AppSettings>(json);
                 if (s != null)
                 {
-                    if (s.Connections < 1 || s.Connections > 32) s.Connections = 16;
+                    if (s.Connections < 1 || s.Connections > TurboSources.MaxConnections)
+                        s.Connections = TurboSources.MaxConnections;
+                    if (s.HlsConcurrency < 1 || s.HlsConcurrency > 64) s.HlsConcurrency = 24;
+                    if (string.IsNullOrWhiteSpace(s.MediaQuality)) s.MediaQuality = "best";
                     if (string.IsNullOrWhiteSpace(s.ModelsDir)) s.ModelsDir = DefaultModelsDir;
                     if (string.IsNullOrWhiteSpace(s.DownloadDir)) s.DownloadDir = DefaultDownloadDir;
                     return s;

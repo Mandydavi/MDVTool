@@ -11,7 +11,7 @@
     <RootNamespace>MDVTool</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Product>MDV Tool</Product>
     <AssemblyTitle>MDV Tool</AssemblyTitle>
     <Company>Mandydavi</Company>
@@ -26,6 +26,10 @@
     <Resource Include="Assets\logo.png" />
     <Resource Include="Assets\reward-wechat.jpg" />
     <Resource Include="Assets\reward-alipay.jpg" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\.\.\bin\aria2c.exe')">
+    <None Include="\.\.\bin\aria2c.exe" CopyToOutputDirectory="PreserveNewest" Link="aria2c.exe"/>
   </ItemGroup>
 
 </Project>

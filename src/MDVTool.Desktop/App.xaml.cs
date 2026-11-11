@@ -21,7 +21,7 @@ public partial class App : Application
         };
 
         Settings = AppSettings.Load();
-        ThemeManager.Apply(Settings.DarkMode);
+        ThemeManager.Apply(Settings.DarkMode, Settings.Palette);
     }
 
     private void OnUnhandled(object? sender, DispatcherUnhandledExceptionEventArgs e)

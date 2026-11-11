@@ -1,6 +1,8 @@
 # 构建产物
 bin/
 obj/
+dist/
+build/
 publish/
 *.user
 *.suo
@@ -30,3 +32,6 @@ release.ps1
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# 本工具临时目录
+.dumate/

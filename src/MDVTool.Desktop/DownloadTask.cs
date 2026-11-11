@@ -171,6 +171,9 @@ public sealed class DownloadTask : INotifyPropertyChanged
     public string DoneText => Fmt.Human(Done);
     public string SpeedText => Fmt.Speed(SpeedBps);
 
+    /// <summary>大卡片右侧的大号速度数字（单位单独用小字排版）</summary>
+    public string SpeedNumber => (SpeedBps / 1048576.0).ToString("0.0");
+
     /// <summary>列表速度列：非进行中的任务显示占位符，避免一排 0.0 B/s 噪声</summary>
     public string SpeedCell => Status is TaskStatus.Downloading or TaskStatus.Racing
         or TaskStatus.Connecting or TaskStatus.Verifying
@@ -304,19 +307,17 @@ public sealed class DownloadTask : INotifyPropertyChanged
     /// <summary>队列分组标题</summary>
     public string QueueGroup => Status switch
     {
-        TaskStatus.Racing or TaskStatus.Connecting or TaskStatus.Downloading or TaskStatus.Verifying => "进行中",
-        TaskStatus.Queued => "等待",
-        TaskStatus.Completed => "已完成",
-        _ => "已停止"
+        TaskStatus.Racing or TaskStatus.Connecting or TaskStatus.Downloading or TaskStatus.Verifying => "正在下载",
+        TaskStatus.Queued => "队列中",
+        _ => "已完成与异常"
     };
 
-    /// <summary>分组排序：进行中 → 等待 → 已完成 → 已停止</summary>
+    /// <summary>分组排序：正在下载 → 队列中 → 已完成与异常</summary>
     public int GroupOrder => Status switch
     {
         TaskStatus.Racing or TaskStatus.Connecting or TaskStatus.Downloading or TaskStatus.Verifying => 0,
         TaskStatus.Queued => 1,
-        TaskStatus.Completed => 2,
-        _ => 3
+        _ => 2
     };
 
     /// <summary>紧凑行用的短元信息：目录名 · 大小（只取末级目录，避免长路径占位）</summary>

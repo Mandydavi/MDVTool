@@ -33,7 +33,7 @@ jobs:
 
       - name: 发布单文件
         run: >
-          dotnet publish MDVTool.Desktop/MDVTool.csproj
+          dotnet publish src/MDVTool.Desktop/MDVTool.csproj
           -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true

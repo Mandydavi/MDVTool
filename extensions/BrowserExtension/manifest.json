@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "MDV Tool 下载嗅探",
+  "version": "1.0.0",
+  "description": "嗅探网页中的视频、音频与 m3u8/mpd 资源，一键发送到 MDV Tool 下载。",
+  "permissions": [
+    "webRequest",
+    "activeTab",
+    "contextMenus",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

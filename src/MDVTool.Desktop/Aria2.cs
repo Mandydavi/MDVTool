@@ -57,13 +57,21 @@ public static class Aria2
             }
         }
 
+        // 优先级 2：exe 同目录。命中就立刻返回，避免为探测去扫整个 WinGet 目录
+        var beside = Path.Combine(AppContext.BaseDirectory, "aria2c.exe");
+        if (File.Exists(beside))
+        {
+            _cached = beside;
+            return beside;
+        }
+
         var candidates = new List<string>
         {
-            // 优先级 2：exe 同目录。把 aria2c.exe 放在旁边即可便携使用
-            Path.Combine(AppContext.BaseDirectory, "aria2c.exe")
+            @"C:\Program Files\aria2\aria2c.exe",
+            @"C:\Program Files (x86)\aria2\aria2c.exe"
         };
 
-        // winget 安装位置（版本号不固定，扫一遍）
+        // winget 安装位置（版本号不固定）；只向下找两层，避免启动时递归整棵目录树
         try
         {
             var winget = Path.Combine(
@@ -73,14 +81,22 @@ public static class Aria2
             {
                 foreach (var d in Directory.GetDirectories(winget, "aria2*"))
                 {
-                    candidates.AddRange(Directory.GetFiles(d, "aria2c.exe", SearchOption.AllDirectories));
+                    var direct = Path.Combine(d, "aria2c.exe");
+                    if (File.Exists(direct)) { candidates.Add(direct); continue; }
+                    foreach (var sub in Directory.GetDirectories(d))
+                    {
+                        var nested = Path.Combine(sub, "aria2c.exe");
+                        if (File.Exists(nested)) candidates.Add(nested);
+                        foreach (var sub2 in Directory.GetDirectories(sub))
+                        {
+                            var nested2 = Path.Combine(sub2, "aria2c.exe");
+                            if (File.Exists(nested2)) candidates.Add(nested2);
+                        }
+                    }
                 }
             }
         }
         catch { }
-
-        candidates.Add(@"C:\Program Files\aria2\aria2c.exe");
-        candidates.Add(@"C:\Program Files (x86)\aria2\aria2c.exe");
 
         foreach (var c in candidates)
         {
@@ -184,58 +200,46 @@ public static class Aria2
     }
 
     /// <summary>
-    /// 下载单个文件。返回 true 表示文件已完整落盘。
+    /// 极速下载：同一文件的多个镜像一起交给 aria2，由它把分段摊到不同 URL，
+    /// 实现带宽跨源叠加；连接数上限 64，并在速度明显掉下来时自动加线程重启续传。
     /// 取消时抛 OperationCanceledException。
     /// </summary>
     public static async Task<bool> DownloadAsync(
         DownloadTask task, string url, long totalHint, int connections, Action<string> log, CancellationToken ct,
-        bool autoTuned = false)
+        bool autoTuned = false,
+        IReadOnlyList<string>? extraUrls = null,
+        int perServer = 0,
+        IReadOnlyDictionary<string, string>? headers = null,
+        bool adaptiveBoost = true)
     {
         var aria = Find() ?? throw new InvalidOperationException(
-            "找不到 aria2c.exe，请先安装：winget install aria2.aria2");
+            "下载组件还没就绪，程序正在后台自动获取，请稍等几秒后重试（或重启程序）");
 
         var destDir = Path.GetDirectoryName(task.DestPath)!;
         Directory.CreateDirectory(destDir);
         var ctrl = task.DestPath + ".aria2";
 
-        connections = Math.Clamp(connections, 1, 32);
+        // 多源去重复：主 URL 永远排第一
+        var urls = new List<string> { url };
+        if (extraUrls != null)
+            foreach (var u in extraUrls)
+                if (!string.IsNullOrWhiteSpace(u) &&
+                    !urls.Contains(u, StringComparer.Ordinal)) urls.Add(u);
+
+        connections = Math.Clamp(connections, 1, TurboSources.MaxConnections);
         // autoTuned：调用方已实测过各并发档位，直接采用，不再套用站点硬规则
-        if (!autoTuned) connections = ConnectionsForHost(url, connections, log);
-        var psi = new ProcessStartInfo(aria)
-        {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = false,
-            RedirectStandardError = false,
-            WorkingDirectory = destDir,
-        };
-        var commonArgs = CommonArgs();
+        if (!autoTuned && urls.Count == 1)
+            connections = ConnectionsForHost(url, connections, log);
 
-        foreach (var a in new[]
-                 {
-                     $"-x{connections}", $"-s{connections}", "-k1M",
-                     $"--max-connection-per-server={connections}", "--min-split-size=1M",
-                     "--disable-ipv6=true",
-                     "--check-certificate=false",
-                     "--file-allocation=none",
-                     "-c",
-                     "--timeout=20", "--connect-timeout=20",
-                     "--max-tries=0", "--retry-wait=2",
-                     "--auto-save-interval=2",
-                     "--console-log-level=warn", "--summary-interval=0",
-                     "-d", destDir, "-o", task.FileName, url
-                 }.Concat(commonArgs))
-        {
-            psi.ArgumentList.Add(a);
-        }
-
-        int attempts = 0;
+        int attempts = 0, boosts = 0;
         while (true)
         {
             ct.ThrowIfCancellationRequested();
             attempts++;
             task.Status = attempts == 1 ? TaskStatus.Connecting : TaskStatus.Downloading;
             task.SpeedBps = 0;
+
+            var psi = BuildPsi(aria, destDir, task.FileName, urls, connections, perServer, headers);
 
             Process proc;
             try
@@ -250,7 +254,10 @@ public static class Aria2
             task.Proc = proc;
             long lastDone = 0, prev = -1;
             var lastT = DateTime.UtcNow;
-            double spd = 0;
+            var started = DateTime.UtcNow;
+            double spd = 0, peak = 0;
+            int slowTicks = 0;
+            bool boostRequested = false;
 
             try
             {
@@ -285,11 +292,29 @@ public static class Aria2
                         lastDone = done;
                         lastT = now;
                     }
+                    if (spd > peak) peak = spd;
 
                     task.Status = TaskStatus.Downloading;
                     task.Done = done;
                     task.SpeedBps = spd;
                     task.PushSample(spd);
+
+                    // 慢段补线程：速度持续低于峰值 35% 且还剩不少没下完，
+                    // 就从断点重启并加大分段，让 aria2 重新分配未完成的分片。
+                    // 最多触发 2 次，避免在网络抖动时来回重启反而更慢。
+                    if (adaptiveBoost && boosts < 2 && connections < TurboSources.MaxConnections &&
+                        (now - started).TotalSeconds > 12 && peak > 256 * 1024 &&
+                        done < total * 0.9 && spd < peak * 0.35)
+                    {
+                        slowTicks++;
+                        if (slowTicks >= 12)
+                        {
+                            boostRequested = true;
+                            Kill(proc);
+                            break;
+                        }
+                    }
+                    else slowTicks = 0;
                 }
             }
             catch (OperationCanceledException)
@@ -316,6 +341,17 @@ public static class Aria2
                 return true;
             }
 
+            if (boostRequested)
+            {
+                boosts++;
+                int next = Math.Min(TurboSources.MaxConnections,
+                    Math.Max(connections + 8, (int)(connections * 1.5)));
+                log($"[加速] 速度掉到峰值的 1/3 以下，从断点重启并把分段 {connections} → {next}");
+                connections = next;
+                perServer = 0;
+                continue;
+            }
+
             if (attempts >= 8)
             {
                 log($"[FAIL] 连续 {attempts} 次未完成，下次运行会续传");
@@ -325,6 +361,54 @@ public static class Aria2
             log($"[重试 {attempts}] 连接中断，正在续传 ...");
             await Task.Delay(2000, ct);
         }
+    }
+
+    /// <summary>组装 aria2 参数。所有选项在前、所有 URL 在后，避免参数解析歧义。</summary>
+    private static ProcessStartInfo BuildPsi(
+        string aria, string destDir, string fileName, IReadOnlyList<string> urls,
+        int connections, int perServer, IReadOnlyDictionary<string, string>? headers)
+    {
+        int per = perServer > 0 ? Math.Clamp(perServer, 1, connections) : connections;
+        var psi = new ProcessStartInfo(aria)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
+            WorkingDirectory = destDir,
+        };
+
+        var args = new List<string>
+        {
+            $"-x{connections}", $"-s{connections}", "-k1M",
+            $"--max-connection-per-server={per}", "--min-split-size=1M",
+            "--reuse-uri=true",             // 允许复用同一 URL 补足连接，多源时仍优先用没用过的
+            "--disable-ipv6=true",
+            "--check-certificate=false",
+            "--file-allocation=none",       // 立刻开下，不为大文件预分配
+            "-c",                           // 断点续传
+            "--timeout=15", "--connect-timeout=10",
+            "--max-tries=0", "--retry-wait=1",
+            "--auto-save-interval=2",
+            "--console-log-level=warn", "--summary-interval=0",
+            "-d", destDir, "-o", fileName,
+        };
+
+        if (headers != null)
+        {
+            foreach (var kv in headers)
+            {
+                if (string.IsNullOrWhiteSpace(kv.Key)) continue;
+                var key = kv.Key.Replace("\r", "").Replace("\n", "");
+                var val = (kv.Value ?? "").Replace("\r", "").Replace("\n", "");
+                args.Add($"--header={key}: {val}");
+            }
+        }
+
+        args.AddRange(CommonArgs());
+        args.AddRange(urls);   // 同一任务的多个 URI，aria2 会把不同分段分散过去
+        foreach (var a in args) psi.ArgumentList.Add(a);
+        return psi;
     }
 
     // ==================================================================
@@ -353,7 +437,7 @@ public static class Aria2
         DownloadTask task, string source, string saveDir, Action<string> log, CancellationToken ct)
     {
         var aria = Find() ?? throw new InvalidOperationException(
-            "找不到 aria2c.exe，请先安装：winget install aria2.aria2");
+            "下载组件还没就绪，程序正在后台自动获取，请稍等几秒后重试（或重启程序）");
 
         Directory.CreateDirectory(saveDir);
 

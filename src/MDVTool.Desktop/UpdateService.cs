@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -49,6 +50,21 @@ public static class UpdateService
         var feed = (App.Settings.UpdateFeed ?? "").Trim();
         if (feed.Length == 0) return null;
 
+        // 本地 / UNC / file:// 更新源：不连公网也能推送（共享盘、U 盘、映射盘、内网目录）。
+        // 只要把新的 version.json 和新版 exe 放到同一个目录，客户端就能检查到更新。
+        if (!IsHttp(feed))
+        {
+            try
+            {
+                string local = LocalPath(feed);
+                if (File.Exists(local))
+                    return Finish(Parse(File.ReadAllText(local)), local);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch { }
+            return null;
+        }
+
         // 先按「最新 tag」取文件：jsDelivr 对 @main 有最长 12 小时的缓存，
         // 而 @v1.2.3 这种 tag 地址是实时的。tag 从 github.com 的 atom 源读（国内可达）。
         var byTag = await TryByNewestTagAsync(feed, ct);
@@ -60,7 +76,7 @@ public static class UpdateService
             try
             {
                 var json = await ComfyNet.Http.GetStringAsync(url, ct);
-                return Parse(json);
+                return Finish(Parse(json), url);
             }
             catch (OperationCanceledException)
             {
@@ -96,7 +112,7 @@ public static class UpdateService
 
             var url = $"https://cdn.jsdelivr.net/gh/{owner}/{repo}@{tag.Groups[1].Value}/version.json";
             var json = await ComfyNet.Http.GetStringAsync(url, ct);
-            return Parse(json);
+            return Finish(Parse(json), url);
         }
         catch (OperationCanceledException)
         {
@@ -139,10 +155,56 @@ public static class UpdateService
         }
     }
 
+    private static bool IsHttp(string s) =>
+        s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+        s.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>把 file://、环境变量、引号都归一化成本地路径（UNC 共享路径原样保留）。</summary>
+    private static string LocalPath(string feed)
+    {
+        string s = Environment.ExpandEnvironmentVariables(feed.Trim().Trim('"'));
+        if (s.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+        {
+            try { return new Uri(s).LocalPath; } catch { return s; }
+        }
+        return s;
+    }
+
+    /// <summary>
+    /// version.json 里的 url 可以只写文件名（如 "MDVTool-1.0.0-Setup.exe"），
+    /// 按 version.json 所在目录自动补全。同一份清单放公网、内网 HTTP 或共享盘都能用。
+    /// </summary>
+    private static UpdateInfo? Finish(UpdateInfo? info, string source)
+    {
+        if (info == null) return null;
+        string u = (info.Url ?? "").Trim();
+        if (u.Length == 0 || IsHttp(u) || Path.IsPathRooted(u) ||
+            u.StartsWith("\\\\", StringComparison.Ordinal)) return info;
+
+        if (IsHttp(source))
+        {
+            int i = source.LastIndexOf('/');
+            if (i > 0) info.Url = source.Substring(0, i + 1) + u.Replace('\\', '/');
+        }
+        else
+        {
+            string dir = Path.GetDirectoryName(source) ?? "";
+            try
+            {
+                info.Url = Path.GetFullPath(
+                    Path.Combine(dir, u.Replace('/', Path.DirectorySeparatorChar)));
+            }
+            catch { }
+        }
+        return info;
+    }
+
     private static UpdateInfo? Parse(string json)
     {
         try
         {
+            // PowerShell 的 Set-Content -Encoding UTF8 会带 BOM，JsonDocument 不接受
+            json = json.TrimStart('\uFEFF', '\u200B').Trim();
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 

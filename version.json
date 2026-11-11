@@ -1,7 +1,8 @@
 {
-  "version": "1.0.0",
-  "date": "2026-11-05",
-  "size": 71323073,
+  "version": "1.1.0",
+  "date": "2026-11-12",
+  "size": 71330466,
   "url": "https://github.com/Mandydavi/MDVTool/releases/latest",
-  "notes": "首个公开版本：通用下载、多源竞速、托盘常驻、关闭询问、联网更新"
+  "notes": "1.1 界面与布局大改：五入口导航、单行捕获与底部操作条、三段任务区、文件库卡片、磁力/BT 独立页、设置单页分节、四套配色；下载能力同步升级",
+  "sha256": "ebd11c1401cf627783cadec16370a563aa634654ccb64723ddc1acd842c20fe5"
 }

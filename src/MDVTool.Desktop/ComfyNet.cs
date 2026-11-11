@@ -68,7 +68,7 @@ public static class ComfyNet
         {
             AutomaticDecompression = DecompressionMethods.None,
             AllowAutoRedirect = true,
-            MaxConnectionsPerServer = 32,
+            MaxConnectionsPerServer = 64,
         };
         var c = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(40) };
         c.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) MDVTool/2.0");
@@ -179,7 +179,7 @@ public static class ComfyNet
     }
 
     // ==================================================================
-    // 连接数自适应：实测 1 / 4 / 16 连接，谁快用谁
+    // 连接数自适应：实测 1 / 4 / 16 / 32 / 64 连接，谁快用谁
     // ==================================================================
     private static readonly Dictionary<string, (int Conn, DateTime At)> ConnCache = new();
     private static readonly object ConnGate = new();
@@ -187,7 +187,7 @@ public static class ComfyNet
     public static async Task<int> PickConnectionsAsync(
         string url, long total, int maxConn, Action<string> log, CancellationToken ct)
     {
-        maxConn = Math.Clamp(maxConn, 1, 32);
+        maxConn = Math.Clamp(maxConn, 1, TurboSources.MaxConnections);
         if (maxConn <= 1) return 1;
         if (total > 0 && total < 8L * 1024 * 1024) return 1;   // 小文件分片没意义
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return 1;
@@ -204,7 +204,7 @@ public static class ComfyNet
             }
         }
 
-        var tiers = new[] { 1, 4, 16 }.Where(n => n <= maxConn).Distinct().ToArray();
+        var tiers = new[] { 1, 4, 16, 32, 64 }.Where(n => n <= maxConn).Distinct().ToArray();
         log($"连接数自动测速（{string.Join(" / ", tiers)}，各 2.5 秒）...");
 
         int best = 1;
@@ -290,12 +290,13 @@ public static class ComfyNet
         var results = new List<(string, double)>();
         if (cands.Count == 1) return (url, results);
 
-        log($"测速选源（{cands.Count} 个候选，各 2.5 秒）...");
-        foreach (var u in cands)
+        log($"并行测速选源（{cands.Count} 个候选，各 2.5 秒，同时进行）...");
+        var probes = cands.Select(u => ProbeAsync(u, 2.5, ct)).ToArray();
+        var bpsList = await Task.WhenAll(probes);
+        for (int i = 0; i < cands.Count; i++)
         {
-            ct.ThrowIfCancellationRequested();
-            var (bps, _) = await ProbeAsync(u, 2.5, ct);
-            var host = new Uri(u).Host;
+            double bps = bpsList[i].Bps;
+            var host = Uri.TryCreate(cands[i], UriKind.Absolute, out var x) ? x.Host : "unknown";
             results.Add((host, bps));
             log(bps > 0 ? $"    {host,-26} {bps / 1048576.0,8:0.00} MB/s" : $"    {host,-26} 失败");
         }

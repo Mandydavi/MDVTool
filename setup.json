@@ -1,0 +1,10 @@
+{
+  "appName": "MDV Tool",
+  "exeName": "MDV Tool.exe",
+  "version": "1.1.0",
+  "url": "",
+  "sha256": "",
+  "localFile": "MDV Tool.exe",
+  "defaultDir": "%LOCALAPPDATA%\\MDVTool",
+  "comment": "url 留空时使用安装器同目录的 localFile（离线安装）；填上直链则为在线安装器，只需分发这个小 exe"
+}

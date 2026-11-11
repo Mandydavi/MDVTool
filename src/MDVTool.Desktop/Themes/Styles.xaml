@@ -263,6 +263,66 @@
         </Setter>
     </Style>
 
+    <!-- 带描边的小图标按钮（清除输入等） -->
+    <Style x:Key="MiniIconBtn" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Dim}"/>
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="Width" Value="24"/>
+        <Setter Property="Height" Value="24"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="Transparent" CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverSoft}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 任务行的选择框：15px 圆角方块 -->
+    <Style x:Key="RowCheck" TargetType="CheckBox">
+        <Setter Property="Width" Value="15"/>
+        <Setter Property="Height" Value="15"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid>
+                        <Border x:Name="bd" Width="15" Height="15" CornerRadius="4"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource BorderHover}" BorderThickness="1.2"/>
+                        <Path x:Name="tick" Data="M2,5.4 L5,8.2 L10.4,2.4"
+                              Stroke="White" StrokeThickness="1.6"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Visibility="Collapsed"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Accent}"/>
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                            <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="IconBtn" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource Dim}"/>
         <Setter Property="Background" Value="Transparent"/>
@@ -308,9 +368,37 @@
         </Style.Triggers>
     </Style>
 
+    <!-- 任务卡底部带文字的次要按钮（暂停 / 打开 / 复制） -->
+    <Style x:Key="RowTextAction" TargetType="Button">
+        <Setter Property="Height" Value="27"/>
+        <Setter Property="Padding" Value="9,0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{DynamicResource Card}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                            CornerRadius="5" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Surface2}"/>
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource BorderHover}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="WinBtn" TargetType="Button" BasedOn="{StaticResource IconBtn}">
-        <Setter Property="Width" Value="46"/>
-        <Setter Property="Height" Value="44"/>
+        <Setter Property="Width" Value="42"/>
+        <Setter Property="Height" Value="58"/>
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -390,6 +478,7 @@
     <!-- 捕获区输入：无边框透明，由外层 Border 提供焦点光晕 -->
     <Style x:Key="CaptureInput" TargetType="TextBox">
         <Setter Property="FontSize" Value="13.5"/>
+        <Setter Property="Cursor" Value="IBeam"/>
         <Setter Property="Foreground" Value="{DynamicResource Text}"/>
         <Setter Property="CaretBrush" Value="{DynamicResource Accent}"/>
         <Setter Property="SelectionBrush" Value="{DynamicResource Accent}"/>
@@ -402,7 +491,9 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+                    <!-- 透明背景用于命中测试：否则空白处点击会穿透，输入框无法聚焦 -->
+                    <ScrollViewer x:Name="PART_ContentHost" Background="Transparent"
+                                  IsHitTestVisible="False" VerticalAlignment="Center"/>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -719,10 +810,10 @@
         </Setter>
     </Style>
 
-    <!-- 任务列表行：固定 60 高，分隔线，选中时左侧 2px 强调条 -->
+    <!-- 任务列表行：独立卡片（v2 布局） -->
     <Style x:Key="RowItem" TargetType="ListBoxItem">
         <Setter Property="Padding" Value="0"/>
-        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Margin" Value="2,0,2,8"/>
         <!-- 行高由模板决定：进行中 76，其余 44（v8 层级） -->
         <Setter Property="MinHeight" Value="44"/>
         <!-- ListBoxItem 的 Foreground 不会从 Window 继承下来，不显式给就是纯黑 -->
@@ -732,20 +823,24 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="bd" Background="Transparent"
-                            BorderBrush="{DynamicResource BorderSoft}" BorderThickness="0,0,0,1">
+                    <Border x:Name="bd" Background="{DynamicResource Card}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                            CornerRadius="11">
                         <Grid>
                             <ContentPresenter VerticalAlignment="Stretch"/>
-                            <Border x:Name="bar" Width="2" HorizontalAlignment="Left"
-                                    Background="{DynamicResource Accent}" Visibility="Collapsed"/>
+                            <Border x:Name="bar" Width="3" HorizontalAlignment="Left"
+                                    Background="{DynamicResource Accent}" Visibility="Collapsed"
+                                    CornerRadius="11,0,0,11"/>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource RowHover}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource CardHover}"/>
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource BorderHover}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="bd" Property="Background" Value="{DynamicResource RowSel}"/>
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                             <Setter TargetName="bar" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -1058,4 +1153,261 @@
         </Setter>
     </Style>
 
+    <!-- ============================================================
+         v2 全新设计 · 侧栏导航（208px 宽栏，图标 + 文字 + 计数）
+         ============================================================ -->
+    <Style x:Key="NavLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Dim}"/>
+        <Setter Property="Margin" Value="12,6,0,8"/>
+    </Style>
+
+    <Style x:Key="NavItem" TargetType="RadioButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Margin" Value="0,0,0,3"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid>
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="9"/>
+                        <Border x:Name="bar" Width="3" CornerRadius="0,3,3,0"
+                                Background="{DynamicResource Accent}" HorizontalAlignment="Left"
+                                Margin="-10,10,0,10" Visibility="Collapsed"/>
+                        <ContentPresenter Margin="12,0,10,0" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Surface2}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Surface3}"/>
+                            <Setter TargetName="bar" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NavCount" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Surface3}"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="6,1"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextElement.FontSize" Value="10"/>
+        <Setter Property="TextElement.FontFamily" Value="{StaticResource MonoFont}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Dim}"/>
+    </Style>
+
+    <!-- 侧栏导航（按钮版：设置页这类非互斥入口） -->
+    <Style x:Key="NavItemButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Margin" Value="0,0,0,3"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="Transparent" CornerRadius="9">
+                        <ContentPresenter Margin="12,0,10,0" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Surface2}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================================================
+         v2 全新设计 · 标题栏按钮
+         ============================================================ -->
+    <Style x:Key="TitleBtn" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
+        <Setter Property="Background" Value="{DynamicResource Card}"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Padding" Value="11,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                            CornerRadius="9" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource BorderHover}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Surface2}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="TitleIconBtn" TargetType="Button" BasedOn="{StaticResource TitleBtn}">
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+
+    <Style x:Key="TitleHeartBtn" TargetType="Button" BasedOn="{StaticResource TitleBtn}">
+        <Setter Property="Foreground" Value="{DynamicResource Heart}"/>
+        <Setter Property="Background" Value="{DynamicResource HeartSoft}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <!-- 侧栏底部「支持作者」卡片 -->
+    <Style x:Key="DonateCard" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Margin" Value="0,0,0,10"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" CornerRadius="13" Padding="13,12"
+                            BorderBrush="{DynamicResource Heart}" BorderThickness="1"
+                            Background="{DynamicResource HeartSoft}">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource HeartSoft}"/>
+                            <Setter TargetName="bd" Property="Opacity" Value="0.92"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SideFootBtn" TargetType="Button" BasedOn="{StaticResource TitleBtn}">
+        <Setter Property="Height" Value="31"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Padding" Value="6,0"/>
+    </Style>
+
+    <!-- ============================================================
+         v2 全新设计 · 底部状态条
+         ============================================================ -->
+    <Style x:Key="StatusItem" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Dim}"/>
+        <Setter Property="FontSize" Value="10.5"/>
+        <Setter Property="Height" Value="29"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Surface2}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================================================
+         v2 全新设计 · 仪表盘
+         ============================================================ -->
+    <Style x:Key="DashKicker" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Dim}"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+
+    <Style x:Key="BigNum" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+        <Setter Property="FontSize" Value="30"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+        <Setter Property="LineHeight" Value="34"/>
+    </Style>
+
+    <Style x:Key="MetricVal" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+        <Setter Property="FontSize" Value="19"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+    </Style>
+
+    <Style x:Key="MetricCap" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10.5"/>
+        <Setter Property="Foreground" Value="{DynamicResource Dim}"/>
+        <Setter Property="Margin" Value="0,6,0,0"/>
+    </Style>
+
+    <!-- 区块标题：正在下载 / 队列中 -->
+    <Style x:Key="SecHeadTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+
+    <!-- 配色浮层里的单选行 -->
+    <Style x:Key="PaletteItem" TargetType="Button">
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="Transparent" CornerRadius="7" Padding="8,0">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Surface3}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 文件库目录卡：不固定高度，避免内容被行高裁切 -->
+    <Style x:Key="FolderCardItem" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <ContentPresenter/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

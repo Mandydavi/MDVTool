@@ -1,0 +1,97 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============================================================
+         调色板：深色（v2 全新设计）
+         层级：Bg #0A0C10 < Sidebar/Card2 #0E1116 < Card #141820 < Surface3 #202734
+         靠三级表面 + 1px 描边区分层级，不用纯黑加深
+         ============================================================ -->
+
+    <!-- 表面 -->
+    <SolidColorBrush x:Key="Bg" Color="#0A0C10"/>
+    <SolidColorBrush x:Key="SidebarBg" Color="#0E1116"/>
+    <SolidColorBrush x:Key="Card" Color="#141820"/>
+    <SolidColorBrush x:Key="CardHover" Color="#191E28"/>
+    <SolidColorBrush x:Key="CardSel" Color="#202734"/>
+    <SolidColorBrush x:Key="Surface2" Color="#191E28"/>
+    <SolidColorBrush x:Key="Surface3" Color="#202734"/>
+
+    <!-- 描边 -->
+    <SolidColorBrush x:Key="Border" Color="#242C39"/>
+    <SolidColorBrush x:Key="BorderSoft" Color="#1C232E"/>
+    <SolidColorBrush x:Key="BorderHover" Color="#364152"/>
+
+    <!-- 文字 -->
+    <SolidColorBrush x:Key="Text" Color="#F0F4FA"/>
+    <SolidColorBrush x:Key="Sub" Color="#A9B6C8"/>
+    <SolidColorBrush x:Key="Dim" Color="#73829A"/>
+    <SolidColorBrush x:Key="Text3" Color="#73829A"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#A9B6C8"/>
+    <SolidColorBrush x:Key="Faint" Color="#364152"/>
+
+    <!-- 品牌色：冰蓝 -->
+    <SolidColorBrush x:Key="Accent" Color="#6AA9FF"/>
+    <SolidColorBrush x:Key="Accent2" Color="#4C7DF0"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#8ABEFF"/>
+    <SolidColorBrush x:Key="AccentSoft" Color="#1E2838"/>
+    <SolidColorBrush x:Key="AccentDisabled" Color="#2C3B5E"/>
+    <SolidColorBrush x:Key="BrandSoft" Color="#1E2838"/>
+    <SolidColorBrush x:Key="AccentRing" Color="#406AA9FF"/>
+
+    <!-- 心动色：支持作者 -->
+    <SolidColorBrush x:Key="Heart" Color="#FF8FA8"/>
+    <SolidColorBrush x:Key="Heart2" Color="#FFC078"/>
+    <SolidColorBrush x:Key="HeartSoft" Color="#221A20"/>
+
+    <!-- 品牌渐变（标题栏 Logo / 主按钮） -->
+    <LinearGradientBrush x:Key="BrandGrad" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#6AA9FF" Offset="0"/>
+        <GradientStop Color="#4C7DF0" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="HeartGrad" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FF8FA8" Offset="0"/>
+        <GradientStop Color="#FFC078" Offset="1"/>
+    </LinearGradientBrush>
+
+    <!-- 状态色（文字） -->
+    <SolidColorBrush x:Key="Green" Color="#4ADE9B"/>
+    <SolidColorBrush x:Key="Red" Color="#FF7285"/>
+    <SolidColorBrush x:Key="Amber" Color="#F5C565"/>
+
+    <!-- 状态色（底色） -->
+    <SolidColorBrush x:Key="SuccessSoft" Color="#1F4ADE9B"/>
+    <SolidColorBrush x:Key="DangerSoft" Color="#1FFF7285"/>
+    <SolidColorBrush x:Key="WarnSoft" Color="#1FF5C565"/>
+
+    <!-- 文件类型徽章 -->
+    <SolidColorBrush x:Key="TypeSft" Color="#9BB4FF"/>
+    <SolidColorBrush x:Key="TypeSftSoft" Color="#1F9BB4FF"/>
+    <SolidColorBrush x:Key="TypeCkpt" Color="#BFA3FF"/>
+    <SolidColorBrush x:Key="TypeCkptSoft" Color="#1FBFA3FF"/>
+    <SolidColorBrush x:Key="TypeGguf" Color="#5BD3E5"/>
+    <SolidColorBrush x:Key="TypeGgufSoft" Color="#1F5BD3E5"/>
+    <SolidColorBrush x:Key="TypeMisc" Color="#A9B6C8"/>
+    <SolidColorBrush x:Key="TypeMiscSoft" Color="#1FA9B6C8"/>
+
+    <!-- 控件 -->
+    <SolidColorBrush x:Key="FieldBg" Color="#0A0C10"/>
+    <SolidColorBrush x:Key="GhostBg" Color="#141820"/>
+    <SolidColorBrush x:Key="HoverSoft" Color="#191E28"/>
+    <SolidColorBrush x:Key="RowHover" Color="#191E28"/>
+    <SolidColorBrush x:Key="RowSel" Color="#202734"/>
+    <SolidColorBrush x:Key="ItemHover" Color="#202734"/>
+    <SolidColorBrush x:Key="PanelSoft" Color="#191E28"/>
+    <SolidColorBrush x:Key="PanelAlt" Color="#0E1116"/>
+
+    <SolidColorBrush x:Key="TrackBg" Color="#202734"/>
+    <SolidColorBrush x:Key="ThumbBg" Color="#364152"/>
+    <SolidColorBrush x:Key="SwitchOff" Color="#364152"/>
+    <SolidColorBrush x:Key="Knob" Color="#F0F4FA"/>
+
+    <SolidColorBrush x:Key="CloseHover" Color="#E5484D"/>
+    <SolidColorBrush x:Key="Scrim" Color="#9E03060B"/>
+
+    <!-- 注意：Shadow 是 Color 而不是 Brush，DropShadowEffect.Color 只认 Color -->
+    <Color x:Key="Shadow">#000000</Color>
+
+</ResourceDictionary>
