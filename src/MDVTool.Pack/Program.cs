@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -174,12 +175,42 @@ namespace MDVPack
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "MDV", pack.Id, string.IsNullOrEmpty(pack.Version) ? "current" : pack.Version);
             string marker = Path.Combine(root, ".mdv-ready");
-            if (!File.Exists(marker))
+            string exe = Path.Combine(root, pack.Exe);
+
+            // 是否需要（重新）解压。不能只看 .mdv-ready：同一版本号重建后内容可能已变，
+            // 若只认标记就会一直启动旧的已解压副本。这里额外做内容校验——比较包内主程序
+            // 与已解压文件的字节数，不一致就重新解压覆盖，保证同版本重建也能真正更新。
+            bool needExtract = !File.Exists(marker) || !File.Exists(exe);
+            if (!needExtract)
             {
+                long expected = -1;
+                try
+                {
+                    using (var za = ZipFile.OpenRead(pack.Zip))
+                    {
+                        var entry = za.GetEntry(pack.Exe)
+                                    ?? za.Entries.FirstOrDefault(en =>
+                                        string.Equals(Path.GetFileName(en.FullName), pack.Exe,
+                                            StringComparison.OrdinalIgnoreCase));
+                        if (entry != null) expected = entry.Length;
+                    }
+                }
+                catch { /* 读包失败则退化为按原逻辑启动 */ }
+
+                if (expected >= 0)
+                {
+                    var info = new FileInfo(exe);
+                    if (info.Length != expected) needExtract = true;
+                }
+            }
+
+            if (needExtract)
+            {
+                // 旧实例会锁住主程序，导致覆盖失败（IOException 被吞、仍旧版）——先结束同路径的运行实例
+                TryKillRunning(exe);
                 pack.ExtractTo(root, null);
                 File.WriteAllText(marker, pack.Version);
             }
-            string exe = Path.Combine(root, pack.Exe);
             if (!File.Exists(exe)) throw new Exception("发布包里缺少主程序：" + pack.Exe);
             Process.Start(new ProcessStartInfo(exe)
             {
@@ -187,6 +218,28 @@ namespace MDVPack
                 WorkingDirectory = root,
             });
             return 0;
+        }
+
+        /// <summary>结束正在运行的同路径主程序实例（否则无法覆盖它）。</summary>
+        private static void TryKillRunning(string exe)
+        {
+            try
+            {
+                string name = Path.GetFileNameWithoutExtension(exe);
+                foreach (var p in Process.GetProcessesByName(name))
+                {
+                    try
+                    {
+                        if (string.Equals(p.MainModule.FileName, exe, StringComparison.OrdinalIgnoreCase))
+                        {
+                            p.Kill();
+                            p.WaitForExit(3000);
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
         }
     }
 

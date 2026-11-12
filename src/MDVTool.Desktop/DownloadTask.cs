@@ -166,6 +166,8 @@ public sealed class DownloadTask : INotifyPropertyChanged
     /// 宽窗口能显示全名；完整文件名始终可通过 ToolTip 查看</summary>
     public string DisplayName => FileName;
     public string BadgeText => Badge.Text(FileName);
+    /// <summary>任务行左侧的类型图标（矢量，替代原来的 SFT 字母色块）</summary>
+    public string BadgeIcon => Badge.Icon(FileName);
     public Brush BadgeBrush => Badge.BrushFor(FileName);
     public string TotalText => Total > 0 ? Fmt.Human(Total) : "未知";
     public string DoneText => Fmt.Human(Done);
@@ -373,6 +375,7 @@ public sealed class DownloadTask : INotifyPropertyChanged
             Raise(nameof(FileName));
             Raise(nameof(DisplayName));
             Raise(nameof(BadgeText));
+            Raise(nameof(BadgeIcon));
             Raise(nameof(BadgeBrush));
             Raise(nameof(Folder));
             Raise(nameof(DestPath));

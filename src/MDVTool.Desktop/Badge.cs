@@ -44,6 +44,32 @@ public static class Badge
         };
     }
 
+    /// <summary>按扩展名给一个语义化的矢量图标名（对应 Themes/Icons.xaml 的 Ico.*）</summary>
+    public static string Icon(string fileName)
+    {
+        var ext = Path.GetExtension(fileName ?? "").TrimStart('.').ToLowerInvariant();
+        return ext switch
+        {
+            // 模型权重：立方体
+            "safetensors" or "ckpt" or "pt" or "pth" or "bin" or "onnx" or "gguf" => "cube",
+            // 压缩包
+            "zip" or "7z" or "rar" or "tar" or "gz" => "archive",
+            // 种子
+            "torrent" => "magnet",
+            // 安装包 / 可执行
+            "exe" or "msi" => "package",
+            // 文本配置
+            "json" or "yaml" or "yml" or "txt" or "md" or "csv" => "file-text",
+            // 视频
+            "mp4" or "mkv" or "mov" or "webm" or "avi" => "film",
+            // 音频
+            "mp3" or "wav" or "flac" or "m4a" or "ogg" => "music",
+            // 图片
+            "png" or "jpg" or "jpeg" or "webp" or "gif" or "bmp" => "image",
+            _ => "file"
+        };
+    }
+
     public static Brush BrushFor(string fileName)
     {
         var ext = Path.GetExtension(fileName ?? "").TrimStart('.').ToLowerInvariant();
@@ -96,4 +122,5 @@ public sealed class ModelFile
     public long Size { get; }
     public string SizeText => Fmt.Human(Size);
     public string BadgeText => Badge.Text(Name);
+    public string BadgeIcon => Badge.Icon(Name);
 }

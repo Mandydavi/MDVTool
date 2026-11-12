@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ctrl="clr-namespace:MDVTool.Controls">
 
     <!-- ============================================================
          字体
@@ -665,8 +666,7 @@
                                 </ControlTemplate>
                             </TextBox.Template>
                         </TextBox>
-                        <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="9"
-                                   Foreground="{DynamicResource Dim}" HorizontalAlignment="Right"
+                        <ctrl:VectorIcon Kind="chevron-down" Width="12" Height="12" Foreground="{DynamicResource Dim}" HorizontalAlignment="Right"
                                    VerticalAlignment="Center" Margin="0,0,9,0" IsHitTestVisible="False"/>
                         <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom"
                                IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"
@@ -717,8 +717,7 @@
                                           Content="{TemplateBinding SelectionBoxItem}"
                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                           IsHitTestVisible="False"/>
-                        <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="9"
-                                   Foreground="{DynamicResource Dim}" HorizontalAlignment="Right"
+                        <ctrl:VectorIcon Kind="chevron-down" Width="12" Height="12" Foreground="{DynamicResource Dim}" HorizontalAlignment="Right"
                                    VerticalAlignment="Center" Margin="0,0,11,0" IsHitTestVisible="False"/>
                         <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom"
                                IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"

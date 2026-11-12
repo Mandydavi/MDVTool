@@ -755,6 +755,7 @@ public partial class MainWindow : Window
         RaceSwitch.IsChecked = s.RaceSources;
         VerifySwitch.IsChecked = s.AutoVerify;
         ThemeSwitch.IsChecked = s.DarkMode;
+        SyncThemeIcon(s.DarkMode);
         AskFolderSwitch.IsChecked = s.AskFolderOnAdd;
 
         // v2.3 下载行为
@@ -951,8 +952,12 @@ public partial class MainWindow : Window
         ThemeManager.Apply(dark, App.Settings.Palette);
         App.Settings.DarkMode = dark;
         App.Settings.Save();
+        SyncThemeIcon(dark);
         Log(dark ? "已切换到深色主题。" : "已切换到浅色主题。");
     }
+
+    /// <summary>标题栏主题按钮图标：浅色时显示月亮（点击进深色），深色时显示太阳</summary>
+    private void SyncThemeIcon(bool dark) => ThemeGlyph.Kind = dark ? "sun" : "moon";
 
     private void BrowseModelsDir_Click(object sender, RoutedEventArgs e)
     {

@@ -9,6 +9,8 @@
                 <ResourceDictionary Source="Themes/Palette.Light.xaml"/>
                 <!-- [1] 样式：只写一次，颜色全部走 DynamicResource -->
                 <ResourceDictionary Source="Themes/Styles.xaml"/>
+                <!-- [2] 统一矢量图标：不依赖系统图标字体，换机器不会缺字变方块 -->
+                <ResourceDictionary Source="Themes/Icons.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

@@ -70,7 +70,7 @@
                     <Border Grid.Column="1" Style="{StaticResource TypeBadge}" Tag="{Binding BadgeText}"
                             Width="38" Height="38" CornerRadius="9" Margin="12,0,0,0"
                             TextElement.FontSize="10" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding BadgeText}"/>
+                        <ctrl:VectorIcon Kind="{Binding BadgeIcon}" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding BadgeText}"/>
                     </Border>
 
                     <StackPanel Grid.Column="2" Margin="11,0,12,0" VerticalAlignment="Center">
@@ -139,28 +139,28 @@
                             <Button Style="{StaticResource RowTextAction}" Click="CancelTask_Click"
                                     Visibility="{Binding IsActive, Converter={StaticResource B2V}}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE769;" FontFamily="{StaticResource IconFont}" FontSize="10"/>
+                                    <ctrl:VectorIcon Kind="pause" Width="12" Height="12"/>
                                     <TextBlock Text="暂停" Margin="5,0,0,0"/>
                                 </StackPanel>
                             </Button>
                             <Button Style="{StaticResource RowTextAction}" Click="ResumeTask_Click" Margin="5,0,0,0"
                                     Visibility="{Binding CanResume, Converter={StaticResource B2V}}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE768;" FontFamily="{StaticResource IconFont}" FontSize="10"/>
+                                    <ctrl:VectorIcon Kind="play" Width="12" Height="12"/>
                                     <TextBlock Text="继续" Margin="5,0,0,0"/>
                                 </StackPanel>
                             </Button>
                             <Button Style="{StaticResource RowTextAction}" Click="OpenTaskFolder_Click"
                                     Margin="5,0,0,0" ToolTip="{Binding FolderHint}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" FontSize="10"/>
+                                    <ctrl:VectorIcon Kind="folder-open" Width="12" Height="12"/>
                                     <TextBlock Text="打开" Margin="5,0,0,0"/>
                                 </StackPanel>
                             </Button>
                             <Button Style="{StaticResource RowTextAction}" Click="CopyTaskUrl_Click"
                                     Margin="5,0,0,0" ToolTip="复制链接">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE8C8;" FontFamily="{StaticResource IconFont}" FontSize="10"/>
+                                    <ctrl:VectorIcon Kind="copy" Width="12" Height="12"/>
                                     <TextBlock Text="复制" Margin="5,0,0,0"/>
                                 </StackPanel>
                             </Button>
@@ -170,7 +170,7 @@
                             </Button>
                             <Button Style="{StaticResource RowTextAction}" Click="RemoveTask_Click"
                                     Margin="5,0,0,0" ToolTip="移除">
-                                <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="10"/>
+                                <ctrl:VectorIcon Kind="x" Width="12" Height="12"/>
                             </Button>
                         </StackPanel>
                     </Grid>
@@ -211,7 +211,7 @@
                     <Border Grid.Column="1" Style="{StaticResource TypeBadge}" Tag="{Binding BadgeText}"
                             Width="26" Height="26" CornerRadius="7" Margin="11,0,0,0"
                             TextElement.FontSize="7.5" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding BadgeText}"/>
+                        <ctrl:VectorIcon Kind="{Binding BadgeIcon}" Width="15" Height="15" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding BadgeText}"/>
                     </Border>
 
                     <TextBlock Grid.Column="2" Text="{Binding DisplayName}" FontSize="12"
@@ -236,21 +236,21 @@
                                 Margin="8,0,0,0">
                         <Button Style="{StaticResource RowAction}" Click="ResumeTask_Click" ToolTip="继续"
                                 Visibility="{Binding CanResume, Converter={StaticResource B2V}}">
-                            <TextBlock Text="&#xE768;" FontFamily="{StaticResource IconFont}" FontSize="11"/>
+                            <ctrl:VectorIcon Kind="play" Width="13" Height="13"/>
                         </Button>
                         <Button Style="{StaticResource RowAction}" Click="OpenTaskFolder_Click"
                                 ToolTip="{Binding FolderHint}">
-                            <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" FontSize="11"/>
+                            <ctrl:VectorIcon Kind="folder-open" Width="13" Height="13"/>
                         </Button>
                         <Button Style="{StaticResource RowAction}" Click="CopyTaskUrl_Click" ToolTip="复制链接">
-                            <TextBlock Text="&#xE8C8;" FontFamily="{StaticResource IconFont}" FontSize="11"/>
+                            <ctrl:VectorIcon Kind="copy" Width="13" Height="13"/>
                         </Button>
                         <Button Style="{StaticResource RowTextAction}" Click="TaskDetail_Click"
                                 Margin="2,0,0,0" ToolTip="查看详情">
                             <TextBlock Text="详情"/>
                         </Button>
                         <Button Style="{StaticResource RowAction}" Click="RemoveTask_Click" ToolTip="移除">
-                            <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="11"/>
+                            <ctrl:VectorIcon Kind="x" Width="13" Height="13"/>
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -317,8 +317,7 @@
                             WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button Style="{StaticResource TitleBtn}" Click="NewTask_Click" ToolTip="回到工作台并聚焦输入框">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="12"
-                                       VerticalAlignment="Center"/>
+                            <ctrl:VectorIcon Kind="plus" Width="14" Height="14" VerticalAlignment="Center"/>
                             <TextBlock Text="新建任务" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
@@ -326,22 +325,19 @@
                     <Button Style="{StaticResource TitleHeartBtn}" Margin="7,0,0,0" Click="OpenDonate_Click"
                             ToolTip="支持作者">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xEB51;" FontFamily="{StaticResource IconFont}" FontSize="12"
-                                       VerticalAlignment="Center"/>
+                            <ctrl:VectorIcon Kind="heart" Width="14" Height="14" VerticalAlignment="Center"/>
                             <TextBlock Text="支持作者" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
                     <Button Style="{StaticResource TitleIconBtn}" Margin="7,0,0,0"
                             Click="ThemeToggle_Click" ToolTip="切换浅色 / 深色">
-                        <TextBlock x:Name="ThemeGlyph" Text="&#xE706;"
-                                   FontFamily="{StaticResource IconFont}" FontSize="13"/>
+                        <ctrl:VectorIcon Kind="sun" Width="15" Height="15" x:Name="ThemeGlyph"/>
                     </Button>
 
                     <Button x:Name="PaletteBtn" Style="{StaticResource TitleIconBtn}" Margin="4,0,0,0"
                             Click="Palette_Click" ToolTip="切换界面配色">
-                        <TextBlock Text="&#xE790;" FontFamily="{StaticResource IconFont}" FontSize="13"
-                                   Foreground="{DynamicResource Accent}"/>
+                        <ctrl:VectorIcon Kind="palette" Width="15" Height="15" Foreground="{DynamicResource Accent}"/>
                     </Button>
 
                     <StackPanel Orientation="Horizontal" Margin="6,0,0,0">
@@ -399,8 +395,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE80A;" FontFamily="{StaticResource IconFont}"
-                                               FontSize="16" VerticalAlignment="Center"/>
+                                    <ctrl:VectorIcon Kind="grid" Width="18" Height="18" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="工作台" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
                                     <Border Grid.Column="2" Style="{StaticResource NavCount}">
@@ -417,8 +412,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}"
-                                               FontSize="16" VerticalAlignment="Center"/>
+                                    <ctrl:VectorIcon Kind="folder" Width="18" Height="18" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="文件库" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
                                     <Border Grid.Column="2" Style="{StaticResource NavCount}">
@@ -435,8 +429,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE930;" FontFamily="{StaticResource IconFont}"
-                                               FontSize="16" VerticalAlignment="Center"/>
+                                    <ctrl:VectorIcon Kind="check-circle" Width="18" Height="18" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="已完成" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
                                     <Border Grid.Column="2" Style="{StaticResource NavCount}">
@@ -453,8 +446,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFont}"
-                                               FontSize="16" VerticalAlignment="Center"/>
+                                    <ctrl:VectorIcon Kind="magnet" Width="18" Height="18" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="磁力 / BT" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
                                     <Border Grid.Column="2" Style="{StaticResource NavCount}">
@@ -473,8 +465,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}"
-                                               FontSize="16" VerticalAlignment="Center"/>
+                                    <ctrl:VectorIcon Kind="settings" Width="18" Height="18" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="设置" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
                                 </Grid>
@@ -535,8 +526,7 @@
                                             <Border Style="{StaticResource StatusPill}" Background="{DynamicResource Surface2}"
                                                     Margin="0,0,6,0">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE945;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="9" VerticalAlignment="Center"
+                                                    <ctrl:VectorIcon Kind="zap" Width="12" Height="12" VerticalAlignment="Center"
                                                                Margin="0,0,4,0" Foreground="{DynamicResource Accent}"/>
                                                     <TextBlock Text="多源并发" FontSize="10.5"
                                                                Foreground="{DynamicResource Sub}"/>
@@ -545,8 +535,7 @@
                                             <Border Style="{StaticResource StatusPill}" Background="{DynamicResource Surface2}"
                                                     Margin="0,0,6,0">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE81E;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="9" VerticalAlignment="Center"
+                                                    <ctrl:VectorIcon Kind="layers" Width="12" Height="12" VerticalAlignment="Center"
                                                                Margin="0,0,4,0" Foreground="{DynamicResource Accent}"/>
                                                     <TextBlock Text="自动归类" FontSize="10.5"
                                                                Foreground="{DynamicResource Sub}"/>
@@ -554,8 +543,7 @@
                                             </Border>
                                             <Border Style="{StaticResource StatusPill}" Background="{DynamicResource Surface2}">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="9" VerticalAlignment="Center"
+                                                    <ctrl:VectorIcon Kind="refresh" Width="12" Height="12" VerticalAlignment="Center"
                                                                Margin="0,0,4,0" Foreground="{DynamicResource Accent}"/>
                                                     <TextBlock Text="断点续传" FontSize="10.5"
                                                                Foreground="{DynamicResource Sub}"/>
@@ -586,8 +574,7 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFont}"
-                                                       FontSize="17" Foreground="{DynamicResource Accent}"
+                                            <ctrl:VectorIcon Kind="link" Width="20" Height="20" Foreground="{DynamicResource Accent}"
                                                        VerticalAlignment="Center" Margin="0,0,12,0"/>
 
                                             <Grid Grid.Column="1" Background="Transparent">
@@ -619,16 +606,14 @@
                                             <Button Grid.Column="2" Style="{StaticResource MiniBtn}" Height="30"
                                                     Margin="8,0,0,0" Click="PasteUrl_Click" ToolTip="从剪贴板粘贴">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE77F;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="11" VerticalAlignment="Center"/>
+                                                    <ctrl:VectorIcon Kind="clipboard" Width="13" Height="13" VerticalAlignment="Center"/>
                                                     <TextBlock Text="粘贴" Margin="5,0,0,0" FontSize="11"
                                                                VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Grid.Column="3" Style="{StaticResource MiniIconBtn}"
                                                     Margin="2,0,0,0" Click="ClearUrl_Click" ToolTip="清空">
-                                                <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}"
-                                                           FontSize="10"/>
+                                                <ctrl:VectorIcon Kind="x" Width="12" Height="12"/>
                                             </Button>
                                         </Grid>
                                     </Border>
@@ -666,12 +651,10 @@
                                                     Margin="0,0,10,0" Click="PickTargetFolder_Click"
                                                     ToolTip="选择保存位置">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="11" VerticalAlignment="Center"/>
+                                                    <ctrl:VectorIcon Kind="folder" Width="13" Height="13" VerticalAlignment="Center"/>
                                                     <TextBlock x:Name="TargetChipText" Text="自动归类" FontSize="11"
                                                                Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="7" Margin="6,1,0,0" VerticalAlignment="Center"
+                                                    <ctrl:VectorIcon Kind="chevron-down" Width="12" Height="12" Margin="6,1,0,0" VerticalAlignment="Center"
                                                                Foreground="{DynamicResource Dim}"/>
                                                 </StackPanel>
                                             </Button>
@@ -686,8 +669,7 @@
                                             <Button Style="{StaticResource MiniBtn}" Height="30" Margin="0,0,6,0"
                                                     Click="BtPick_Click" ToolTip="选择一个 .torrent 文件">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE7C3;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="11" VerticalAlignment="Center"/>
+                                                    <ctrl:VectorIcon Kind="file" Width="13" Height="13" VerticalAlignment="Center"/>
                                                     <TextBlock Text="选择 .torrent" Margin="5,0,0,0" FontSize="11"
                                                                VerticalAlignment="Center"/>
                                                 </StackPanel>
@@ -696,8 +678,7 @@
                                             <Button x:Name="StartBtn" Style="{StaticResource Primary}"
                                                     Height="34" Padding="16,0" Click="AddTask_Click">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="13" VerticalAlignment="Center"/>
+                                                    <ctrl:VectorIcon Kind="download" Width="15" Height="15" VerticalAlignment="Center"/>
                                                     <TextBlock Text="开始下载" Margin="7,0,0,0" FontSize="12.5"
                                                                VerticalAlignment="Center"/>
                                                 </StackPanel>
@@ -838,8 +819,7 @@
                                         <RadioButton x:Name="TabAll" Style="{StaticResource Segmented}" GroupName="Tab"
                                                      IsChecked="True" Checked="Tab_Checked">
                                             <StackPanel Orientation="Horizontal">
-                                                <Ellipse Width="6" Height="6" VerticalAlignment="Center"
-                                                         Fill="{DynamicResource Dim}"/>
+                                                <ctrl:VectorIcon Kind="list" Width="11" Height="11" VerticalAlignment="Center" Foreground="{DynamicResource Dim}"/>
                                                 <TextBlock Text="全部" Margin="6,0,0,0"/>
                                                 <TextBlock x:Name="CountAll" Text="0" Margin="6,0,0,0" FontSize="10"
                                                            FontFamily="{StaticResource MonoFont}"
@@ -849,8 +829,7 @@
                                         <RadioButton x:Name="TabActive" Style="{StaticResource Segmented}" GroupName="Tab"
                                                      Checked="Tab_Checked">
                                             <StackPanel Orientation="Horizontal">
-                                                <Ellipse Width="6" Height="6" VerticalAlignment="Center"
-                                                         Fill="{DynamicResource Dim}"/>
+                                                <ctrl:VectorIcon Kind="download" Width="11" Height="11" VerticalAlignment="Center" Foreground="{DynamicResource Dim}"/>
                                                 <TextBlock Text="下载中" Margin="6,0,0,0"/>
                                                 <TextBlock x:Name="CountActive" Text="0" Margin="6,0,0,0" FontSize="10"
                                                            FontFamily="{StaticResource MonoFont}"
@@ -860,8 +839,7 @@
                                         <RadioButton x:Name="TabQueued" Style="{StaticResource Segmented}" GroupName="Tab"
                                                      Checked="Tab_Checked">
                                             <StackPanel Orientation="Horizontal">
-                                                <Ellipse Width="6" Height="6" VerticalAlignment="Center"
-                                                         Fill="{DynamicResource Dim}"/>
+                                                <ctrl:VectorIcon Kind="clock" Width="11" Height="11" VerticalAlignment="Center" Foreground="{DynamicResource Dim}"/>
                                                 <TextBlock Text="排队中" Margin="6,0,0,0"/>
                                                 <TextBlock x:Name="CountQueued" Text="0" Margin="6,0,0,0" FontSize="10"
                                                            FontFamily="{StaticResource MonoFont}"
@@ -871,8 +849,7 @@
                                         <RadioButton x:Name="TabDone" Style="{StaticResource Segmented}" GroupName="Tab"
                                                      Checked="Tab_Checked">
                                             <StackPanel Orientation="Horizontal">
-                                                <Ellipse Width="6" Height="6" VerticalAlignment="Center"
-                                                         Fill="{DynamicResource Dim}"/>
+                                                <ctrl:VectorIcon Kind="check-circle" Width="11" Height="11" VerticalAlignment="Center" Foreground="{DynamicResource Dim}"/>
                                                 <TextBlock Text="已完成" Margin="6,0,0,0"/>
                                                 <TextBlock x:Name="CountDone" Text="0" Margin="6,0,0,0" FontSize="10"
                                                            FontFamily="{StaticResource MonoFont}"
@@ -882,8 +859,7 @@
                                         <RadioButton x:Name="TabPaused" Style="{StaticResource Segmented}" GroupName="Tab"
                                                      Checked="Tab_Checked">
                                             <StackPanel Orientation="Horizontal">
-                                                <Ellipse Width="6" Height="6" VerticalAlignment="Center"
-                                                         Fill="{DynamicResource Dim}"/>
+                                                <ctrl:VectorIcon Kind="alert-circle" Width="11" Height="11" VerticalAlignment="Center" Foreground="{DynamicResource Dim}"/>
                                                 <TextBlock Text="异常" Margin="6,0,0,0"/>
                                                 <TextBlock x:Name="CountPaused" Text="0" Margin="6,0,0,0" FontSize="10"
                                                            FontFamily="{StaticResource MonoFont}"
@@ -903,8 +879,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}"
-                                                   FontSize="11" Foreground="{DynamicResource Dim}"
+                                        <ctrl:VectorIcon Kind="search" Width="13" Height="13" Foreground="{DynamicResource Dim}"
                                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
                                         <Grid Grid.Column="1">
                                             <TextBox x:Name="TaskSearchBox" BorderThickness="0" Background="Transparent"
@@ -942,8 +917,7 @@
                                 <Button Grid.Column="4" Style="{StaticResource MiniBtn}" Height="30"
                                         Margin="0,0,6,0" Click="BatchSelectAll_Click" ToolTip="选中当前列表全部任务">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE73A;" FontFamily="{StaticResource IconFont}"
-                                                   FontSize="11" VerticalAlignment="Center"/>
+                                        <ctrl:VectorIcon Kind="check-square" Width="13" Height="13" VerticalAlignment="Center"/>
                                         <TextBlock Text="全选" Margin="5,0,0,0" FontSize="11"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
@@ -952,8 +926,7 @@
                                 <Button Grid.Column="5" Style="{StaticResource MiniBtn}" Height="30"
                                         Margin="0,0,6,0" Click="NewTask_Click" ToolTip="回到输入框添加新任务">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}"
-                                                   FontSize="11" VerticalAlignment="Center"/>
+                                        <ctrl:VectorIcon Kind="plus" Width="13" Height="13" VerticalAlignment="Center"/>
                                         <TextBlock Text="添加任务" Margin="5,0,0,0" FontSize="11"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
@@ -961,7 +934,7 @@
 
                                 <Button Grid.Column="6" Style="{StaticResource IconBtn}"
                                         Click="ToggleLog_Click" ToolTip="运行日志">
-                                    <TextBlock Text="&#xE9D5;" FontFamily="{StaticResource IconFont}" FontSize="14"/>
+                                    <ctrl:VectorIcon Kind="terminal" Width="16" Height="16"/>
                                 </Button>
                             </Grid>
 
@@ -1056,8 +1029,7 @@
                                                 HorizontalAlignment="Center" Visibility="Collapsed">
                                         <Border Width="52" Height="52" CornerRadius="16"
                                                 Background="{DynamicResource Surface2}" HorizontalAlignment="Center">
-                                            <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="20"
-                                                       Foreground="{DynamicResource Dim}"
+                                            <ctrl:VectorIcon Kind="download" Width="23" Height="23" Foreground="{DynamicResource Dim}"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                         <TextBlock Text="队列是空的" Margin="0,14,0,0" FontSize="13"
@@ -1090,8 +1062,7 @@
                                     <Button Style="{StaticResource MiniBtn}" Margin="0,0,6,0"
                                             Click="ExportHistory_Click">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE74B;" FontFamily="{StaticResource IconFont}"
-                                                       FontSize="11" VerticalAlignment="Center"/>
+                                            <ctrl:VectorIcon Kind="file-text" Width="13" Height="13" VerticalAlignment="Center"/>
                                             <TextBlock Text="导出 CSV" Margin="5,0,0,0" FontSize="11"/>
                                         </StackPanel>
                                     </Button>
@@ -1169,8 +1140,7 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <Border Style="{StaticResource TypeBadge}" Tag="{Binding BadgeText}">
-                                                    <TextBlock Text="{Binding BadgeText}"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <ctrl:VectorIcon Kind="{Binding BadgeIcon}" Width="19" Height="19" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding BadgeText}"/>
                                                 </Border>
 
                                                 <StackPanel Grid.Column="1" Margin="12,0,14,0" VerticalAlignment="Center">
@@ -1240,24 +1210,21 @@
                                     <Button Grid.Column="1" Style="{StaticResource Ghost}" Height="34"
                                             Margin="8,0,0,0" Click="BrowseModelsDir_Click">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}"
-                                                       FontSize="12" VerticalAlignment="Center"/>
+                                            <ctrl:VectorIcon Kind="folder-open" Width="14" Height="14" VerticalAlignment="Center"/>
                                             <TextBlock Text="浏览…" Margin="6,0,0,0" FontSize="11.5"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Grid.Column="2" Style="{StaticResource Ghost}" Height="34"
                                             Margin="8,0,0,0" Click="OpenModelsDir_Click">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE838;" FontFamily="{StaticResource IconFont}"
-                                                       FontSize="12" VerticalAlignment="Center"/>
+                                            <ctrl:VectorIcon Kind="external-link" Width="14" Height="14" VerticalAlignment="Center"/>
                                             <TextBlock Text="打开模型目录" Margin="6,0,0,0" FontSize="11.5"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Grid.Column="4" Style="{StaticResource Ghost}" Height="34"
                                             Click="RefreshFolders_Click">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFont}"
-                                                       FontSize="12" VerticalAlignment="Center"/>
+                                            <ctrl:VectorIcon Kind="refresh" Width="14" Height="14" VerticalAlignment="Center"/>
                                             <TextBlock Text="重新扫描" Margin="6,0,0,0" FontSize="11.5"/>
                                         </StackPanel>
                                     </Button>
@@ -1309,8 +1276,7 @@
                                                     </Border.Style>
                                                     <StackPanel>
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}"
-                                                                       FontSize="14" Foreground="{DynamicResource Accent}"
+                                                            <ctrl:VectorIcon Kind="folder" Width="16" Height="16" Foreground="{DynamicResource Accent}"
                                                                        VerticalAlignment="Center"/>
                                                             <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
                                                                        Margin="7,0,0,0" VerticalAlignment="Center"
@@ -1427,8 +1393,7 @@
                                                 <Button Grid.Column="2" Style="{StaticResource Ghost}"
                                                         Height="40" Margin="8,0,0,0" Click="BtPickPage_Click">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="&#xE7C3;" FontFamily="{StaticResource IconFont}"
-                                                                   FontSize="12" VerticalAlignment="Center"/>
+                                                        <ctrl:VectorIcon Kind="file" Width="14" Height="14" VerticalAlignment="Center"/>
                                                         <TextBlock Text="选择 .torrent" Margin="6,0,0,0"
                                                                    FontSize="12" VerticalAlignment="Center"/>
                                                     </StackPanel>
@@ -1456,8 +1421,7 @@
                                             <Button x:Name="BtStopBtn" Style="{StaticResource TextBtn}"
                                                     Click="BtStop_Click" IsEnabled="False">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="&#xE71A;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="11" VerticalAlignment="Center"
+                                                    <ctrl:VectorIcon Kind="stop" Width="13" Height="13" VerticalAlignment="Center"
                                                                Margin="0,0,5,0"/>
                                                     <TextBlock Text="全部停止" FontSize="11"/>
                                                 </StackPanel>
@@ -1518,8 +1482,7 @@
                                             BorderThickness="1" Padding="24,36"
                                             Margin="0,0,0,8">
                                         <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFont}"
-                                                       FontSize="28" Foreground="{DynamicResource Dim}"
+                                            <ctrl:VectorIcon Kind="magnet" Width="30" Height="30" Foreground="{DynamicResource Dim}"
                                                        HorizontalAlignment="Center" Opacity="0.6"/>
                                             <TextBlock Text="还没有 BT 任务" FontSize="13" FontWeight="SemiBold"
                                                        HorizontalAlignment="Center" Margin="0,10,0,0"/>
@@ -1560,7 +1523,7 @@
                                     <TextBlock Text="任务详情" Style="{StaticResource H2}" VerticalAlignment="Center"/>
                                     <Button Style="{StaticResource IconBtn}" HorizontalAlignment="Right"
                                             VerticalAlignment="Center" Click="CloseDrawer_Click" ToolTip="收起 (Esc)">
-                                        <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="12"/>
+                                        <ctrl:VectorIcon Kind="x" Width="14" Height="14"/>
                                     </Button>
                                 </Grid>
                                 <Border Grid.Row="0" Height="1" VerticalAlignment="Bottom"
@@ -1578,8 +1541,7 @@
                                             <Border Width="42" Height="42" CornerRadius="11"
                                                     VerticalAlignment="Top"
                                                     Style="{StaticResource TypeBadge}" Tag="{Binding BadgeText}">
-                                                <TextBlock Text="{Binding BadgeText}" FontSize="10"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <ctrl:VectorIcon Kind="{Binding BadgeIcon}" Width="19" Height="19" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding BadgeText}"/>
                                             </Border>
                                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding FileName}" FontSize="13" FontWeight="SemiBold"
@@ -1664,8 +1626,7 @@
                                                 <Button Grid.Column="1" Style="{StaticResource IconBtn}"
                                                         Width="24" Height="24" Margin="8,0,0,0"
                                                         Click="OpenTaskFolder_Click" ToolTip="{Binding FolderHint}">
-                                                    <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}"
-                                                               FontSize="11"/>
+                                                    <ctrl:VectorIcon Kind="folder-open" Width="13" Height="13"/>
                                                 </Button>
                                             </Grid>
                                         </Border>
@@ -1726,7 +1687,7 @@
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                         <Button Content="清空" Style="{StaticResource TextBtn}" Click="ClearLog_Click"/>
                                         <Button Style="{StaticResource IconBtn}" Click="CloseLog_Click" ToolTip="收起">
-                                            <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="11"/>
+                                            <ctrl:VectorIcon Kind="x" Width="13" Height="13"/>
                                         </Button>
                                     </StackPanel>
                                 </Grid>
@@ -2347,29 +2308,25 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Style="{StaticResource StatusItem}" Click="ToggleLog_Click">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE9D9;" FontFamily="{StaticResource IconFont}" FontSize="11"
-                                           VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <ctrl:VectorIcon Kind="terminal" Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                 <TextBlock Text="展开日志" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource StatusItem}" Click="RateMenu_Click">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE9F5;" FontFamily="{StaticResource IconFont}" FontSize="11"
-                                           VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <ctrl:VectorIcon Kind="gauge" Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                 <TextBlock Text="不限速" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource StatusItem}" Click="CheckUpdate_Click">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE895;" FontFamily="{StaticResource IconFont}" FontSize="11"
-                                           VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <ctrl:VectorIcon Kind="refresh" Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                 <TextBlock Text="检查更新" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource StatusItem}" Click="OpenRepo_Click">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE774;" FontFamily="{StaticResource IconFont}" FontSize="11"
-                                           VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <ctrl:VectorIcon Kind="external-link" Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                 <TextBlock Text="项目主页" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
@@ -2393,8 +2350,7 @@
                         </Border>
                         <Button Style="{StaticResource StatusItem}" Click="ShowDesignNotes_Click">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE8A5;" FontFamily="{StaticResource IconFont}" FontSize="11"
-                                           VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <ctrl:VectorIcon Kind="sparkle" Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                 <TextBlock Text="设计说明" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>

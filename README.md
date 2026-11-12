@@ -4,7 +4,7 @@
 </picture>
 
 <p align="center">
-  <b>v1.1.0</b> &nbsp;·&nbsp; Windows 10 / 11 (64-bit) &nbsp;·&nbsp; MIT &nbsp;·&nbsp; .NET 10
+  <b>v1.1.1</b> &nbsp;·&nbsp; Windows 10 / 11 (64-bit) &nbsp;·&nbsp; MIT &nbsp;·&nbsp; .NET 10
   <br>
   <a href="../../releases/latest">下载</a> &nbsp;·&nbsp;
   <a href="../../issues">反馈</a> &nbsp;·&nbsp;
@@ -17,6 +17,12 @@
 **MDV** 取自作者名字 **Mandydavi** 的缩写。它不做「又一个下载器皮肤」，而是把两件最烦的事一起做掉：**找到最快的源**，**放到对的目录**。
 
 ---
+
+## 1.1.1 更新：图标修正
+
+- **标题栏「配色」按钮**：原来的「圆圈 + 竖线」（远看像 Φ）换成水滴图标，15px 下也能一眼认出是配色入口
+- **「检查更新」「断点续传」「重新扫描」**：刷新图标重绘成双弧双箭头，不再是只有一截短线的缺口圆
+- 无功能改动，已在 1.1.0 的直接覆盖更新即可
 
 ## 1.1 更新：界面重做、布局重构、下载能力升级
 
@@ -59,7 +65,7 @@
 
 | | |
 |:--:|---|
-| **1** | 从 [Releases](../../releases/latest) 下载 `MDVTool-1.1.0-SingleFile.exe`，双击即用 |
+| **1** | 从 [Releases](../../releases/latest) 下载 `MDVTool-1.1.1-SingleFile.exe`，双击即用 |
 | **2** | 把链接粘进输入框，或直接把 `.torrent` 拖进来 |
 | **3** | 点「开始下载」。测速、选源、归类，它自己完成 |
 
@@ -117,11 +123,11 @@ flowchart LR
 
 | 文件 | 适合 | 说明 |
 |---|---|---|
-| `MDVTool-1.1.0-SingleFile.exe` | 只想拿一个 exe | 首次运行自解包到 `%LOCALAPPDATA%`，之后按版本复用 |
-| `MDVTool-1.1.0-Portable.zip` | 放 U 盘、拷走就用 | 解压后双击 `MDV Tool.exe`，不写注册表 |
-| `MDVTool-1.1.0-Setup.exe` | 想要安装与卸载入口 | 带安装向导，建开始菜单 / 桌面快捷方式与卸载项 |
-| `MDVTool-1.1.0-Bundle.zip` | 内网分发、装机合集 | 主程序、安装器、浏览器扩展分目录放好，附 MANIFEST |
-| `MDVTool-1.1.0-Update.zip` | 已在用旧版 | 只含主程序与引擎，覆盖即可更新 |
+| `MDVTool-1.1.1-SingleFile.exe` | 只想拿一个 exe | 首次运行自解包到 `%LOCALAPPDATA%`，之后按版本复用 |
+| `MDVTool-1.1.1-Portable.zip` | 放 U 盘、拷走就用 | 解压后双击 `MDV Tool.exe`，不写注册表 |
+| `MDVTool-1.1.1-Setup.exe` | 想要安装与卸载入口 | 带安装向导，建开始菜单 / 桌面快捷方式与卸载项 |
+| `MDVTool-1.1.1-Bundle.zip` | 内网分发、装机合集 | 主程序、安装器、浏览器扩展分目录放好，附 MANIFEST |
+| `MDVTool-1.1.1-Update.zip` | 已在用旧版 | 只含主程序与引擎，覆盖即可更新 |
 
 > **仅支持 Windows 10 / 11（64 位）**，发布包自包含，不需要安装 .NET 运行时。
 > macOS 与 Linux 不支持——界面是 C# / WPF 写的，WPF 只有 Windows 有。
@@ -217,10 +223,10 @@ powershell -ExecutionPolicy Bypass -File scripts\pack.ps1
 ### 发版
 
 ```
-git tag v1.1.0 && git push origin v1.1.0
+git tag v1.1.1 && git push origin v1.1.1
 ```
 
-GitHub Actions 会编译、重命名成 `MDVTool-1.1.0-SingleFile.exe` / `.zip`、算 SHA-256 并建 Release。
+GitHub Actions 会编译、重命名成 `MDVTool-1.1.1-SingleFile.exe` / `.zip`、算 SHA-256 并建 Release。
 
 </details>
 
