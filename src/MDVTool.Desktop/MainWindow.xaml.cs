@@ -235,6 +235,23 @@ public partial class MainWindow : Window
 
         // 界面真正显示出来 = 本次启动健康，写在安装目录里给更新器看（更新后据此决定是否回滚）
         Loaded += (_, _) => UpdateInstaller.MarkHealthy();
+
+        // 侧栏「模型库」的计数启动后就该是对的，不用等用户点进去才算
+        Loaded += (_, _) => Dispatcher.BeginInvoke(new Action(RefreshFolders),
+            System.Windows.Threading.DispatcherPriority.Background);
+
+        // 调试/截图用：--view sniff / queue / update / folder 直接打开指定页
+        int vi = Array.IndexOf(args, "--view");
+        if (vi >= 0 && vi + 1 < args.Length) ShowView(args[vi + 1]);
+
+        // 调试/截图用：--new [url] 打开「新建下载」窗口
+        int ni = Array.IndexOf(args, "--new");
+        if (ni >= 0)
+        {
+            string init = ni + 1 < args.Length && args[ni + 1].Contains("://") ? args[ni + 1] : "";
+            Dispatcher.BeginInvoke(new Action(() => ShowNewDownloadWindow(init)),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
     }
 
     // ==================================================================
@@ -246,7 +263,7 @@ public partial class MainWindow : Window
     // ==================================================================
     private void BehaviorCombo_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (!_ready) return;
+        if (!_ready || _syncingQueue) return;
         var s = App.Settings;
 
         s.MaxConcurrent = ConcurrentCombo.SelectedIndex switch { 0 => 1, 1 => 2, 2 => 3, _ => 0 };
@@ -801,6 +818,62 @@ public partial class MainWindow : Window
 
     private void OpenRepo_Click(object sender, RoutedEventArgs e) => OpenUrl(RepoUrl);
 
+    /// <summary>侧栏底部：直接打开下载目录（不在就退到模型目录 / 用户下载夹）</summary>
+    private void OpenDownloadDir_Click(object sender, RoutedEventArgs e)
+    {
+        string dir = (App.Settings.DownloadDir ?? "").Trim();
+        if (!Directory.Exists(dir) && Directory.Exists(App.Settings.ModelsDir))
+            dir = App.Settings.ModelsDir;
+        if (!Directory.Exists(dir))
+        {
+            _ = AskAsync("找不到下载目录",
+                "下载目录不存在：" + dir + "\n\n可以到 设置 → 保存位置 里重新选一个。", "知道了");
+            return;
+        }
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+            Log("[打开目录] " + dir);
+        }
+        catch (Exception ex) { Log("[错误] 打开下载目录失败：" + ex.Message); }
+    }
+
+    // ==================================================================
+    // 浏览器扩展
+    // ==================================================================
+    private string ExtensionDir => Path.Combine(AppContext.BaseDirectory, "BrowserExtension");
+
+    private void ExtensionHelp_Click(object sender, RoutedEventArgs e)
+    {
+        bool has = Directory.Exists(ExtensionDir);
+        string body =
+            "1. Chrome / Edge 打开扩展管理页：chrome://extensions（Edge 是 edge://extensions）\n" +
+            "2. 右上角打开「开发者模式」\n" +
+            "3. 点「加载已解压的扩展程序」，选择下面这个目录：\n" +
+            "   " + ExtensionDir + (has ? "" : "（当前目录里没有，可从发布包的 Portable / Bundle 里取）") + "\n" +
+            "4. 主程序保持运行，并确保「浏览器嗅探桥」是开启的\n\n" +
+            "装好后：网页视频上悬停会出现「用 MDV Tool 下载」，在链接上右键也能一键接管。";
+
+        _ = AskAsync("安装浏览器扩展", body, "知道了");
+        Log("[扩展] 安装说明：加载已解压扩展 " + ExtensionDir);
+    }
+
+    private void OpenExtension_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Directory.Exists(ExtensionDir))
+        {
+            _ = AskAsync("没找到扩展目录",
+                "当前安装目录里没有 BrowserExtension。\n\n把它从发布包的 Portable / Bundle 里解压到：\n" + ExtensionDir,
+                "知道了");
+            return;
+        }
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = ExtensionDir, UseShellExecute = true });
+        }
+        catch (Exception ex) { Log("[错误] 打开扩展目录失败：" + ex.Message); }
+    }
+
     private void OpenDonate_Click(object sender, RoutedEventArgs e) =>
         DonateOverlay.Visibility = Visibility.Visible;
 
@@ -878,6 +951,7 @@ public partial class MainWindow : Window
         VersionLine.Text = "MDV Tool " + UpdateService.CurrentText;
         AutoUpdateSwitch.IsChecked = s.AutoCheckUpdate;
         UpdateFeedBox.Text = s.UpdateFeed ?? "";
+        if (ViewQueue != null) SyncQueueControls();
         CloseCombo.SelectedIndex = (s.CloseAction ?? "ask") switch
         {
             "tray" => 0,
@@ -981,7 +1055,7 @@ public partial class MainWindow : Window
 
     private void ConnCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_ready) return;
+        if (!_ready || _syncingQueue) return;
         int ci = ConnCombo.SelectedIndex;
         App.Settings.AutoConnections = ci <= 0;
         App.Settings.Connections = ci switch { 1 => 4, 2 => 8, 3 => 16, 4 => 32, 5 => 64, _ => 64 };
@@ -1313,19 +1387,14 @@ public partial class MainWindow : Window
         "mint" => "青柠",
         "violet" => "柔紫",
         "coral" => "暖珊瑚",
-        _ => "冰蓝"
+        _ => "墨蓝"
     };
 
     /// <summary>状态条限速入口：打开行为面板</summary>
     private void RateMenu_Click(object sender, RoutedEventArgs e) => OpenSettings("behavior");
 
-    /// <summary>标题栏「新建任务」：回到工作台并把焦点交给输入框</summary>
-    private void NewTask_Click(object sender, RoutedEventArgs e)
-    {
-        if (NavTasks is not null && NavTasks.IsChecked != true) NavTasks.IsChecked = true;
-        ShowView("tasks");
-        UrlBox.Focus();
-    }
+    /// <summary>标题栏「新建下载」：开一个 IDM 风格的添加窗口</summary>
+    private void NewTask_Click(object sender, RoutedEventArgs e) => ShowNewDownloadWindow("");
 
     private void ShowView(string tag)
     {
@@ -1333,15 +1402,41 @@ public partial class MainWindow : Window
         ViewHistory.Visibility = tag == "history" ? Visibility.Visible : Visibility.Collapsed;
         ViewFolder.Visibility = tag == "folder" ? Visibility.Visible : Visibility.Collapsed;
         if (ViewBt != null) ViewBt.Visibility = tag == "bt" ? Visibility.Visible : Visibility.Collapsed;
-        if (ViewSettings != null) ViewSettings.Visibility = tag == "settings" ? Visibility.Visible : Visibility.Collapsed;
+        if (ViewSniff != null) ViewSniff.Visibility = tag == "sniff" ? Visibility.Visible : Visibility.Collapsed;
+        if (ViewQueue != null) ViewQueue.Visibility = tag == "queue" ? Visibility.Visible : Visibility.Collapsed;
+        // 「更新」复用设置页，直接跳到更新分节
+        if (ViewSettings != null)
+            ViewSettings.Visibility = tag is "settings" or "update" ? Visibility.Visible : Visibility.Collapsed;
+
         PageTitleText.Text = tag switch
         {
             "history" => "已完成",
-            "folder" => "文件库",
+            "folder" => "模型库",
             "bt" => "磁力 / BT",
+            "sniff" => "资源嗅探",
+            "queue" => "队列与限速",
+            "update" => "更新",
             "settings" => "设置",
-            _ => "工作台"
+            _ => "下载列表"
         };
+
+        // 侧栏高亮跟着当前页走（程序内部跳转时也能对齐）
+        RadioButton? target = tag switch
+        {
+            "folder" => NavFolder,
+            "sniff" => NavSniff,
+            "queue" => NavQueue,
+            "settings" => NavSettings,
+            "update" => NavUpdate,
+            "tasks" => NavTasks,
+            _ => null
+        };
+        if (target != null && target.IsChecked != true)
+        {
+            _navBusy = true;
+            target.IsChecked = true;
+            _navBusy = false;
+        }
 
         // 详情抽屉只在「队列」页有意义，切到别的页面直接收起
         if (tag != "tasks")
@@ -1352,6 +1447,8 @@ public partial class MainWindow : Window
 
         if (tag == "folder") RefreshFolders();
         if (tag == "history") RefreshHistoryStats();
+        if (tag == "queue") SyncQueueControls();
+        if (tag == "update") ApplySubNav("update");
 
         // 切页时回到顶部，避免上一次的滚动位置或自动选中把页面顶到中段
         Dispatcher.BeginInvoke(new Action(() =>
@@ -1362,9 +1459,225 @@ public partial class MainWindow : Window
                 "history" => HistoryScroll,
                 "bt" => BtScroll,
                 "settings" => SetScroll,
+                "update" => SetScroll,
                 _ => TasksScroll
             })?.ScrollToTop();
         }));
+    }
+
+    // ==================================================================
+    // 队列与限速页
+    // ==================================================================
+    private bool _syncingQueue;
+
+    private void QueueSetting_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready || _syncingQueue) return;
+        var s = App.Settings;
+
+        s.MaxConcurrent = QueueConcurrent.SelectedIndex switch { 0 => 1, 1 => 2, 2 => 3, _ => 0 };
+        s.SpeedLimitMBps = QueueSpeedLimit.SelectedIndex switch { 1 => 1, 2 => 2, 3 => 5, 4 => 10, _ => 0 };
+
+        int ci = QueueConn.SelectedIndex;
+        s.AutoConnections = ci <= 0;
+        s.Connections = ci switch { 1 => 4, 2 => 8, 3 => 16, 4 => 32, 5 => 64, _ => 64 };
+
+        s.Save();
+
+        // 同步设置页里的同名控件，两处永远一致（用 _syncingQueue 防止回环）
+        _syncingQueue = true;
+        try
+        {
+            ConcurrentCombo.SelectedIndex = QueueConcurrent.SelectedIndex;
+            SpeedLimitCombo.SelectedIndex = QueueSpeedLimit.SelectedIndex;
+            ConnCombo.SelectedIndex = QueueConn.SelectedIndex;
+        }
+        finally { _syncingQueue = false; }
+
+        UpdateLimitPill();
+        Log($"[队列] 同时下载 {s.MaxConcurrent switch { 0 => "不限", 1 => 1, 2 => 2, _ => 3 }} · 限速 {s.SpeedLimitMBps} MB/s");
+    }
+
+    private void QueueSwitch_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_ready) return;
+        App.Settings.TurboMultiSource = QueueTurbo.IsChecked == true;
+        App.Settings.AdaptiveBoost = QueueBoost.IsChecked == true;
+        App.Settings.Save();
+
+        _syncingQueue = true;
+        try
+        {
+            TurboSwitch.IsChecked = QueueTurbo.IsChecked;
+            BoostSwitch.IsChecked = QueueBoost.IsChecked;
+        }
+        finally { _syncingQueue = false; }
+    }
+
+    private void SyncQueueControls()
+    {
+        var s = App.Settings;
+        _syncingQueue = true;
+        try
+        {
+            QueueConcurrent.SelectedIndex = s.MaxConcurrent switch { 1 => 0, 2 => 1, 3 => 2, _ => 3 };
+            QueueSpeedLimit.SelectedIndex = s.SpeedLimitMBps switch { <= 0 => 0, <= 1 => 1, <= 2 => 2, <= 5 => 3, _ => 4 };
+            var conns = new[] { 4, 8, 16, 32, 64 };
+            int idx = Array.IndexOf(conns, s.Connections);
+            QueueConn.SelectedIndex = s.AutoConnections ? 0 : (idx >= 0 ? idx + 1 : 5);
+            QueueTurbo.IsChecked = s.TurboMultiSource;
+            QueueBoost.IsChecked = s.AdaptiveBoost;
+        }
+        finally { _syncingQueue = false; }
+
+        int active = _tasks.Count(t => t.IsActive);
+        int queued = _tasks.Count(t => t.Status == TaskStatus.Queued);
+        if (QueueLiveText != null) QueueLiveText.Text = $"{active} 个任务在跑 · {queued} 个排队";
+        if (QueueLiveSub != null)
+            QueueLiveSub.Text = s.MaxConcurrent == 0
+                ? "不限制同时下载数量"
+                : $"最多同时 {s.MaxConcurrent} 个，其余自动排队";
+    }
+
+    private void GoTasks_Click(object sender, RoutedEventArgs e) => NavTasks.IsChecked = true;
+
+    // ==================================================================
+    // 资源嗅探页
+    // ==================================================================
+    private CancellationTokenSource? _sniffCts;
+
+    private void SniffUrl_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+        _ = SniffAsync();
+    }
+
+    private void Sniff_Click(object sender, RoutedEventArgs e) => _ = SniffAsync();
+
+    private void SniffQuality_Changed(object sender, SelectionChangedEventArgs e) { }
+
+    private async Task SniffAsync()
+    {
+        string url = (SniffUrl.Text ?? "").Trim().Trim('"');
+        if (url.Length == 0) { SniffHint.Text = "先把要嗅探的地址粘进来"; return; }
+
+        _sniffCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _sniffCts = cts;
+
+        SniffList.Children.Clear();
+        SniffBar.Visibility = Visibility.Visible;
+        SniffBar.IsIndeterminate = true;
+        SniffHint.Text = "正在解析…（第一次会先准备 yt-dlp，可能要几十秒）";
+        Log("[嗅探] " + url);
+
+        try
+        {
+            await MediaEngine.EnsureYtDlpAsync(Log, cts.Token);
+            var info = await MediaEngine.ResolveAsync(url, MediaQualityFromUi(), Log, cts.Token);
+            AddSniffRow(info, url);
+            SniffHint.Text = $"解析完成：{info.Title}";
+            Log("[嗅探] 命中 " + info.Title);
+        }
+        catch (OperationCanceledException)
+        {
+            SniffHint.Text = "已取消";
+        }
+        catch (Exception ex)
+        {
+            SniffHint.Text = "解析失败：" + ex.Message;
+            Log("[嗅探失败] " + ex.Message);
+        }
+        finally
+        {
+            SniffBar.IsIndeterminate = false;
+            SniffBar.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void AddSniffRow(MediaInfo info, string pageUrl)
+    {
+        string size = info.Duration > 0 ? $"时长 {TimeSpan.FromSeconds(info.Duration):hh\\:mm\\:ss}" : "时长未知";
+        string kind = info.IsHls ? "HLS · m3u8" : (info.NeedsMerge ? "音视频分离" : "直链");
+
+        var row = new Border
+        {
+            Background = (Brush)FindResource("Card"),
+            BorderBrush = (Brush)FindResource("Border"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(18, 16, 18, 16),
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var icon = new Border
+        {
+            Width = 46, Height = 46, CornerRadius = new CornerRadius(13),
+            Background = (Brush)FindResource("AccentSoft"), VerticalAlignment = VerticalAlignment.Center
+        };
+        var ico = new Controls.VectorIcon { Kind = "film", Width = 22, Height = 22, Foreground = (Brush)FindResource("Accent") };
+        icon.Child = ico;
+        grid.Children.Add(icon);
+
+        var texts = new StackPanel { Margin = new Thickness(16, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
+        texts.Children.Add(new TextBlock
+        {
+            Text = string.IsNullOrWhiteSpace(info.Title) ? "未命名资源" : info.Title,
+            FontSize = 14, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis
+        });
+        texts.Children.Add(new TextBlock
+        {
+            Text = $"{kind} · {size} · {info.Ext.ToUpperInvariant()}",
+            FontSize = 12, Margin = new Thickness(0, 6, 0, 0),
+            Foreground = (Brush)FindResource("Dim")
+        });
+        Grid.SetColumn(texts, 1);
+        grid.Children.Add(texts);
+
+        var btn = new Button
+        {
+            Content = "加入下载", Style = (Style)FindResource("Primary"),
+            Height = 32, Padding = new Thickness(16, 0, 16, 0), VerticalAlignment = VerticalAlignment.Center
+        };
+        string target = string.IsNullOrWhiteSpace(info.VideoUrl) ? pageUrl : info.VideoUrl;
+        btn.Click += (_, _) =>
+        {
+            UrlBox.Text = target;
+            ShowView("tasks");
+            _ = AddTaskAsync(skipFolderPrompt: true);
+        };
+        Grid.SetColumn(btn, 2);
+        grid.Children.Add(btn);
+
+        row.Child = grid;
+        SniffList.Children.Add(row);
+    }
+
+    // ==================================================================
+    // 新建下载窗口（IDM 风格）
+    // ==================================================================
+    private void NewDownload_Click(object sender, RoutedEventArgs e) => ShowNewDownloadWindow("");
+
+    private void ShowNewDownloadWindow(string url)
+    {
+        var w = new NewDownloadWindow(url) { Owner = this };
+        if (w.ShowDialog() == true)
+        {
+            string u = w.ResultUrl;
+            if (u.Length > 0)
+            {
+                if (w.ResultFolder.Length > 0) App.Settings.DownloadDir = w.ResultFolder;
+                UrlBox.Text = u;
+                ShowView("tasks");
+                _ = AddTaskAsync(skipFolderPrompt: true);
+            }
+        }
     }
 
     // ==================================================================
@@ -1432,6 +1745,11 @@ public partial class MainWindow : Window
             _ => PaneLook
         };
         pane?.BringIntoView();
+
+        // 从侧栏「更新」进来时页面刚可见，等布局完成再滚到对应分节
+        if (tag == "update" && pane != null)
+            Dispatcher.BeginInvoke(new Action(() => pane.BringIntoView()),
+                System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     /// <summary>切换界面配色（冰蓝 / 青柠 / 柔紫 / 暖珊瑚）</summary>
@@ -1533,15 +1851,8 @@ public partial class MainWindow : Window
         BtProgressCard.Visibility = Visibility.Visible;
         if (BtEmptyHint != null) BtEmptyHint.Visibility = Visibility.Collapsed;
         if (BtCountText != null) BtCountText.Text = "1";
-        if (NavBtCount != null) NavBtCount.Text = "1";
         BtStartBtn.IsEnabled = false;
         BtStopBtn.IsEnabled = true;
-        if (NavBt is not null && NavBt.IsChecked != true)
-        {
-            _navBusy = true;
-            NavBt.IsChecked = true;
-            _navBusy = false;
-        }
         ShowView("bt");
 
         var cts = new CancellationTokenSource();
@@ -1585,7 +1896,6 @@ public partial class MainWindow : Window
             BtStartBtn.IsEnabled = true;
             BtStopBtn.IsEnabled = false;
             if (BtCountText != null) BtCountText.Text = "0";
-            if (NavBtCount != null) NavBtCount.Text = "0";
             if (BtEmptyHint != null) BtEmptyHint.Visibility = Visibility.Visible;
         }
     }
@@ -1831,7 +2141,7 @@ public partial class MainWindow : Window
 
         // v2 侧栏计数 + 工作台仪表盘
         NavTaskCount.Text = _tasks.Count.ToString();
-        NavHistoryCount.Text = _tasks.Count(t => t.IsFinished).ToString();
+
         DashSub.Text = $"{active} 个任务在跑 · 多源并发生效";
         DashActive.Text = active.ToString();
         DashQueue.Text = waiting.ToString();
@@ -2954,7 +3264,7 @@ public partial class MainWindow : Window
                 }
             case "已完成与异常":
                 {
-                    NavHistory.IsChecked = true;
+                    ShowView("history");
                     break;
                 }
         }

@@ -318,7 +318,7 @@
                     <Button Style="{StaticResource TitleBtn}" Click="NewTask_Click" ToolTip="回到工作台并聚焦输入框">
                         <StackPanel Orientation="Horizontal">
                             <ctrl:VectorIcon Kind="plus" Width="14" Height="14" VerticalAlignment="Center"/>
-                            <TextBlock Text="新建任务" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="新建下载" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
@@ -377,7 +377,7 @@
                 <!-- ===== 侧栏 ===== -->
                 <Border Grid.Column="0" Background="{DynamicResource SidebarBg}"
                         BorderBrush="{DynamicResource Border}" BorderThickness="0,0,1,0"
-                        Padding="10,18,10,12">
+                        Padding="12,20,12,12">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
@@ -385,7 +385,7 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0">
-                            <TextBlock Text="工作区" Style="{StaticResource NavLabel}"/>
+                            <TextBlock Text="工作" Style="{StaticResource NavLabel}" Margin="12,2,0,6"/>
 
                             <RadioButton x:Name="NavTasks" Style="{StaticResource NavItem}" GroupName="Nav"
                                          IsChecked="True" Checked="Nav_Checked" Tag="tasks">
@@ -396,7 +396,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <ctrl:VectorIcon Kind="grid" Width="18" Height="18" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="工作台" Margin="6,0,0,0"
+                                    <TextBlock Grid.Column="1" Text="下载列表" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
                                     <Border Grid.Column="2" Style="{StaticResource NavCount}">
                                         <TextBlock x:Name="NavTaskCount" Text="0"/>
@@ -412,8 +412,8 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ctrl:VectorIcon Kind="folder" Width="18" Height="18" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="文件库" Margin="6,0,0,0"
+                                    <ctrl:VectorIcon Kind="cube" Width="18" Height="18" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="模型库" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
                                     <Border Grid.Column="2" Style="{StaticResource NavCount}">
                                         <TextBlock x:Name="NavFolderCount" Text="0"/>
@@ -421,41 +421,35 @@
                                 </Grid>
                             </RadioButton>
 
-                            <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" GroupName="Nav"
-                                         Checked="Nav_Checked" Tag="history">
+                            <RadioButton x:Name="NavSniff" Style="{StaticResource NavItem}" GroupName="Nav"
+                                         Checked="Nav_Checked" Tag="sniff">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="24"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ctrl:VectorIcon Kind="check-circle" Width="18" Height="18" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="已完成" Margin="6,0,0,0"
+                                    <ctrl:VectorIcon Kind="radar" Width="18" Height="18" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="资源嗅探" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
-                                    <Border Grid.Column="2" Style="{StaticResource NavCount}">
-                                        <TextBlock x:Name="NavHistoryCount" Text="0"/>
-                                    </Border>
                                 </Grid>
                             </RadioButton>
 
-                            <RadioButton x:Name="NavBt" Style="{StaticResource NavItem}" GroupName="Nav"
-                                         Checked="Nav_Checked" Tag="bt">
+                            <RadioButton x:Name="NavQueue" Style="{StaticResource NavItem}" GroupName="Nav"
+                                         Checked="Nav_Checked" Tag="queue">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="24"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ctrl:VectorIcon Kind="magnet" Width="18" Height="18" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="磁力 / BT" Margin="6,0,0,0"
+                                    <ctrl:VectorIcon Kind="gauge" Width="18" Height="18" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="队列与限速" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
-                                    <Border Grid.Column="2" Style="{StaticResource NavCount}">
-                                        <TextBlock x:Name="NavBtCount" Text="0"/>
-                                    </Border>
                                 </Grid>
                             </RadioButton>
 
-                            <TextBlock Text="系统" Style="{StaticResource NavLabel}" Margin="12,16,0,8"/>
+                            <TextBlock Text="系统" Style="{StaticResource NavLabel}" Margin="12,18,0,6"/>
 
                             <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" GroupName="Nav"
                                          Checked="Nav_Checked" Tag="settings">
@@ -465,15 +459,40 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ctrl:VectorIcon Kind="settings" Width="18" Height="18" VerticalAlignment="Center"/>
+                                    <ctrl:VectorIcon Kind="sliders" Width="18" Height="18" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="设置" Margin="6,0,0,0"
                                                VerticalAlignment="Center"/>
+                                </Grid>
+                            </RadioButton>
+
+                            <RadioButton x:Name="NavUpdate" Style="{StaticResource NavItem}" GroupName="Nav"
+                                         Checked="Nav_Checked" Tag="update">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="24"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ctrl:VectorIcon Kind="refresh" Width="18" Height="18" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="更新" Margin="6,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                    <Border x:Name="NavUpdateDot" Grid.Column="2" Width="7" Height="7"
+                                            CornerRadius="4" Background="{DynamicResource Amber}"
+                                            VerticalAlignment="Center" Visibility="Collapsed"/>
                                 </Grid>
                             </RadioButton>
 
                         </StackPanel>
 
                         <StackPanel Grid.Row="1">
+                            <Button Style="{StaticResource SideFootBtn}" Click="OpenDownloadDir_Click" Margin="0,0,0,6">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <ctrl:VectorIcon Kind="folder-open" Width="13" Height="13" VerticalAlignment="Center"
+                                                     Foreground="{DynamicResource Accent}"/>
+                                    <TextBlock Text="打开下载目录" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource Sub}"/>
+                                </StackPanel>
+                            </Button>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -1187,7 +1206,7 @@
                             </Grid.RowDefinitions>
 
                             <StackPanel Grid.Row="0">
-                                <TextBlock Text="文件库" Style="{StaticResource H1}"/>
+                                <TextBlock Text="模型库" Style="{StaticResource H1}"/>
                                 <TextBlock Text="模型自动归类，普通文件按类型归档"
                                            Style="{StaticResource DimText}" Margin="0,4,0,0"/>
 
@@ -1743,6 +1762,186 @@
                         <!-- 打赏弹层：应用内展示收款码，不跳浏览器 -->
                         
 
+<!-- ================= 资源嗅探 ================= -->
+                        <Grid x:Name="ViewSniff" Visibility="Collapsed" Margin="22,18,22,14">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel>
+                                <TextBlock Text="资源嗅探" FontSize="20" FontWeight="Bold"/>
+                                <TextBlock Text="粘贴视频页 / 网页 / .m3u8 / .mpd 地址，用 yt-dlp + ffmpeg 解析出能直接下的资源"
+                                           FontSize="12" Foreground="{DynamicResource Dim}" Margin="0,4,0,14"/>
+
+                                <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Border}"
+                                        BorderThickness="1" CornerRadius="16" Padding="16,14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <ctrl:VectorIcon Kind="radar" Width="16" Height="16" Margin="4,0,10,0"
+                                                             Foreground="{DynamicResource Dim}"/>
+                                            <TextBox x:Name="SniffUrl" BorderThickness="0" Background="Transparent"
+                                                     FontSize="13" MinWidth="420" VerticalContentAlignment="Center"
+                                                     KeyDown="SniffUrl_KeyDown"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource Primary}" Height="34"
+                                                Padding="20,0" Click="Sniff_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ctrl:VectorIcon Kind="radar" Width="13" Height="13"
+                                                                 VerticalAlignment="Center"/>
+                                                <TextBlock Text="嗅探" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <ProgressBar x:Name="SniffBar" Height="3" Margin="0,10,0,0" Visibility="Collapsed"/>
+                                <TextBlock x:Name="SniffHint" Text="支持 yt-dlp 覆盖的站点；HLS / DASH 会列出可选清晰度"
+                                           FontSize="11.5" Foreground="{DynamicResource Dim}" Margin="2,9,0,0"/>
+                            </StackPanel>
+
+                            <ScrollViewer Grid.Row="1" Margin="0,16,0,0" VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel x:Name="SniffList"/>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- ================= 队列与限速 ================= -->
+                        <Grid x:Name="ViewQueue" Visibility="Collapsed" Margin="22,18,22,14">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel>
+                                    <TextBlock Text="队列与限速" FontSize="20" FontWeight="Bold"/>
+                                    <TextBlock Text="并发、连接数与带宽都在这里调，改完即生效"
+                                               FontSize="12" Foreground="{DynamicResource Dim}" Margin="0,4,0,14"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="14"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Style="{StaticResource SettingCard}" VerticalAlignment="Top">
+                                            <StackPanel>
+                                                <Border Style="{StaticResource SettingRow}">
+                                                    <Grid>
+                                                        <StackPanel>
+                                                            <TextBlock Text="同时下载" FontSize="12.5" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="超出的任务自动排队" Style="{StaticResource DimText}"
+                                                                       Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                        <ComboBox x:Name="QueueConcurrent" Style="{StaticResource BoxCombo}"
+                                                                  Width="150" HorizontalAlignment="Right"
+                                                                  VerticalAlignment="Center"
+                                                                  SelectionChanged="QueueSetting_Changed">
+                                                            <ComboBoxItem Content="1 个"/>
+                                                            <ComboBoxItem Content="2 个"/>
+                                                            <ComboBoxItem Content="3 个"/>
+                                                            <ComboBoxItem Content="不限"/>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Style="{StaticResource SettingRow}">
+                                                    <Grid>
+                                                        <StackPanel>
+                                                            <TextBlock Text="全局限速" FontSize="12.5" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="限制总带宽，不影响其他程序" Style="{StaticResource DimText}"
+                                                                       Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                        <ComboBox x:Name="QueueSpeedLimit" Style="{StaticResource BoxCombo}"
+                                                                  Width="150" HorizontalAlignment="Right"
+                                                                  VerticalAlignment="Center"
+                                                                  SelectionChanged="QueueSetting_Changed">
+                                                            <ComboBoxItem Content="不限速"/>
+                                                            <ComboBoxItem Content="1 MB/s"/>
+                                                            <ComboBoxItem Content="2 MB/s"/>
+                                                            <ComboBoxItem Content="5 MB/s"/>
+                                                            <ComboBoxItem Content="10 MB/s"/>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Style="{StaticResource SettingRow}" BorderThickness="0">
+                                                    <Grid>
+                                                        <StackPanel>
+                                                            <TextBlock Text="默认连接数" FontSize="12.5" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="单任务分段线程数" Style="{StaticResource DimText}"
+                                                                       Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                        <ComboBox x:Name="QueueConn" Style="{StaticResource BoxCombo}"
+                                                                  Width="150" HorizontalAlignment="Right"
+                                                                  VerticalAlignment="Center"
+                                                                  SelectionChanged="QueueSetting_Changed">
+                                                            <ComboBoxItem Content="自动（测速选最快）"/>
+                                                            <ComboBoxItem Content="4 线程"/>
+                                                            <ComboBoxItem Content="8 线程"/>
+                                                            <ComboBoxItem Content="16 线程"/>
+                                                            <ComboBoxItem Content="32 线程"/>
+                                                            <ComboBoxItem Content="64 线程（极速）"/>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="2">
+                                            <Border Style="{StaticResource SettingCard}">
+                                                <StackPanel>
+                                                    <Border Style="{StaticResource SettingRow}">
+                                                        <Grid>
+                                                            <StackPanel>
+                                                                <TextBlock Text="极速多源并发" FontSize="12.5" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="镜像同时分段，带宽跨源叠加"
+                                                                           Style="{StaticResource DimText}" Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <CheckBox x:Name="QueueTurbo" Style="{StaticResource Switch}"
+                                                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                      Click="QueueSwitch_Click"/>
+                                                        </Grid>
+                                                    </Border>
+                                                    <Border Style="{StaticResource SettingRow}" BorderThickness="0">
+                                                        <Grid>
+                                                            <StackPanel>
+                                                                <TextBlock Text="慢速自动补线程" FontSize="12.5" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="掉到峰值 1/3 以下就断点重启并加大分段"
+                                                                           Style="{StaticResource DimText}" Margin="0,2,0,0"
+                                                                           TextWrapping="Wrap"/>
+                                                            </StackPanel>
+                                                            <CheckBox x:Name="QueueBoost" Style="{StaticResource Switch}"
+                                                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                      Click="QueueSwitch_Click"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Style="{StaticResource SettingCard}" Margin="0,14,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="当前状态" FontSize="12" FontWeight="Bold" Margin="16,14,16,6"/>
+                                                    <Border Style="{StaticResource SettingRow}" BorderThickness="0">
+                                                        <Grid>
+                                                            <StackPanel>
+                                                                <TextBlock x:Name="QueueLiveText" Text="0 个任务在跑"
+                                                                           FontSize="12.5" FontWeight="SemiBold"/>
+                                                                <TextBlock x:Name="QueueLiveSub" Text="队列空闲"
+                                                                           Style="{StaticResource DimText}" Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Button Content="去下载列表" Style="{StaticResource MiniBtn}"
+                                                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                    Click="GoTasks_Click"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+
 <!-- ================= 设置（单页分节） ================= -->
                         <Grid x:Name="ViewSettings" Visibility="Collapsed">
                             <Grid.RowDefinitions>
@@ -2262,6 +2461,42 @@
                                                     </StackPanel>
                                                 </Border>
 
+                                                <!-- 浏览器扩展 -->
+                                                <Border Style="{StaticResource SettingCard}" Margin="0,12,0,0">
+                                                    <StackPanel>
+                                                        <Border Style="{StaticResource SettingRow}">
+                                                            <Grid>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="浏览器扩展" FontSize="12.5" FontWeight="SemiBold"/>
+                                                                    <TextBlock Text="网页视频上悬停出现「用 MDV Tool 下载」，右键链接也能直接发过来"
+                                                                               Style="{StaticResource DimText}" Margin="0,2,0,0"
+                                                                               TextWrapping="Wrap"/>
+                                                                </StackPanel>
+                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                                                            VerticalAlignment="Center">
+                                                                    <Button Content="安装步骤" Style="{StaticResource MiniBtn}"
+                                                                            Click="ExtensionHelp_Click"/>
+                                                                    <Button Content="打开扩展目录" Style="{StaticResource MiniBtn}"
+                                                                            Margin="8,0,0,0" Click="OpenExtension_Click"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                        <Border Style="{StaticResource SettingRow}" BorderThickness="0">
+                                                            <Grid>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="嗅探桥接" FontSize="12.5" FontWeight="SemiBold"/>
+                                                                    <TextBlock x:Name="BridgeStateText" Text="监听 127.0.0.1:18765"
+                                                                               Style="{StaticResource DimText}" Margin="0,2,0,0"/>
+                                                                </StackPanel>
+                                                                <Border HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                        Style="{StaticResource StatusPill}" Tag="done">
+                                                                    <TextBlock Text="已启用"/>
+                                                                </Border>
+                                                            </Grid>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </Border>
+
                                                 <!-- 引擎信息：内部实现细节，保留控件但不展示 -->
                                                 <StackPanel Visibility="Collapsed">
                                                     <TextBlock x:Name="AriaSourceText"/>
@@ -2357,12 +2592,6 @@
                             <TextBlock x:Name="LimitPillText" Text="限速" FontSize="10.5"
                                        FontWeight="SemiBold" Foreground="{DynamicResource Amber}"/>
                         </Border>
-                        <Button Style="{StaticResource StatusItem}" Click="ShowDesignNotes_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <ctrl:VectorIcon Kind="sparkle" Width="13" Height="13" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                <TextBlock Text="设计说明" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
                         <TextBlock x:Name="SbRight" Text="0 进行中 · 共 0 项"
                                    FontSize="10.5" Foreground="{DynamicResource Dim}"
                                    VerticalAlignment="Center"/>
@@ -2386,9 +2615,9 @@
                                    Foreground="{DynamicResource Dim}" Margin="6,2,0,8"/>
                         <Button Style="{StaticResource PaletteItem}" Tag="blue" Click="PalettePick_Click">
                             <StackPanel Orientation="Horizontal">
-                                <Border Width="12" Height="12" CornerRadius="4" Background="#6AA9FF"
+                                <Border Width="12" Height="12" CornerRadius="4" Background="#22314E"
                                         VerticalAlignment="Center"/>
-                                <TextBlock Text="冰蓝" FontSize="11.5" Margin="9,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="墨蓝" FontSize="11.5" Margin="9,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button Style="{StaticResource PaletteItem}" Tag="mint" Click="PalettePick_Click">

@@ -4,7 +4,7 @@
 </picture>
 
 <p align="center">
-  <b>v1.2.0</b> &nbsp;·&nbsp; Windows 10 / 11 (64-bit) &nbsp;·&nbsp; MIT &nbsp;·&nbsp; .NET 10
+  <b>v1.3.0</b> &nbsp;·&nbsp; Windows 10 / 11 (64-bit) &nbsp;·&nbsp; MIT &nbsp;·&nbsp; .NET 10
   <br>
   <a href="../../releases/latest">下载</a> &nbsp;·&nbsp;
   <a href="../../issues">反馈</a> &nbsp;·&nbsp;
@@ -17,6 +17,16 @@
 **MDV** 取自作者名字 **Mandydavi** 的缩写。它不做「又一个下载器皮肤」，而是把两件最烦的事一起做掉：**找到最快的源**，**放到对的目录**。
 
 ---
+
+## 1.3.0 更新：界面按「高级清爽」重做
+
+- **配色**：暖白底 + 墨蓝主色 + 香槟金点缀；墨蓝 / 青柠 / 柔紫 / 暖珊瑚四套配色与深浅主题全部对齐
+- **侧栏**：下载列表 / 模型库 / 资源嗅探 / 队列与限速 ｜ 设置 / 更新，模型库数量启动即显示（不用点进去才算）
+- **新建下载窗口**：地址 / 协议识别 / 分类 / 另存为 / 线程 + 右侧预览，像 IDM 的「添加任务」；粘链接回车也能直接开
+- **资源嗅探**：粘网页、视频页或 .m3u8 / .mpd，解析出可下载资源，一键加入下载
+- **队列与限速**：并发数、全局限速、默认连接数、多源并发、慢速补线程集中在一页，改完即生效
+- **更新页**：版本卡片 + 更新源 + 浏览器扩展入口（安装步骤 / 打开扩展目录 / 桥接状态）
+- 细节：侧栏底部加「打开下载目录」；「配色」按钮换成调色盘图标；底部状态条去掉与侧栏重复的入口
 
 ## 1.2.0 更新：应用内自动更新
 
@@ -74,7 +84,7 @@
 
 | | |
 |:--:|---|
-| **1** | 从 [Releases](../../releases/latest) 下载 `MDVTool-1.2.0-SingleFile.exe`，双击即用 |
+| **1** | 从 [Releases](../../releases/latest) 下载 `MDVTool-1.3.0-SingleFile.exe`，双击即用 |
 | **2** | 把链接粘进输入框，或直接把 `.torrent` 拖进来 |
 | **3** | 点「开始下载」。测速、选源、归类，它自己完成 |
 
@@ -132,11 +142,11 @@ flowchart LR
 
 | 文件 | 适合 | 说明 |
 |---|---|---|
-| `MDVTool-1.2.0-SingleFile.exe` | 只想拿一个 exe | 首次运行自解包到 `%LOCALAPPDATA%`，之后按版本复用 |
-| `MDVTool-1.2.0-Portable.zip` | 放 U 盘、拷走就用 | 解压后双击 `MDV Tool.exe`，不写注册表 |
-| `MDVTool-1.2.0-Setup.exe` | 想要安装与卸载入口 | 带安装向导，建开始菜单 / 桌面快捷方式与卸载项 |
-| `MDVTool-1.2.0-Bundle.zip` | 内网分发、装机合集 | 主程序、安装器、浏览器扩展分目录放好，附 MANIFEST |
-| `MDVTool-1.2.0-Update.zip` | 已在用旧版 | 只含主程序与引擎，覆盖即可更新 |
+| `MDVTool-1.3.0-SingleFile.exe` | 只想拿一个 exe | 首次运行自解包到 `%LOCALAPPDATA%`，之后按版本复用 |
+| `MDVTool-1.3.0-Portable.zip` | 放 U 盘、拷走就用 | 解压后双击 `MDV Tool.exe`，不写注册表 |
+| `MDVTool-1.3.0-Setup.exe` | 想要安装与卸载入口 | 带安装向导，建开始菜单 / 桌面快捷方式与卸载项 |
+| `MDVTool-1.3.0-Bundle.zip` | 内网分发、装机合集 | 主程序、安装器、浏览器扩展分目录放好，附 MANIFEST |
+| `MDVTool-1.3.0-Update.zip` | 已在用旧版 | 只含主程序与引擎，覆盖即可更新 |
 
 > **仅支持 Windows 10 / 11（64 位）**，发布包自包含，不需要安装 .NET 运行时。
 > macOS 与 Linux 不支持——界面是 C# / WPF 写的，WPF 只有 Windows 有。
@@ -242,10 +252,10 @@ powershell -ExecutionPolicy Bypass -File scripts\sign-manifest.ps1 -Path version
 ### 发版
 
 ```
-git tag v1.2.0 && git push origin v1.2.0
+git tag v1.3.0 && git push origin v1.3.0
 ```
 
-GitHub Actions 会编译、重命名成 `MDVTool-1.2.0-SingleFile.exe` / `.zip`、算 SHA-256 并建 Release。
+GitHub Actions 会编译、重命名成 `MDVTool-1.3.0-SingleFile.exe` / `.zip`、算 SHA-256 并建 Release。
 
 发完版记得：把 `version.json` 的 `version` / `size` / `sha256` / `url` 改成新版本（`url` 指向该 tag 下的 `MDVTool-x.y.z-Update.zip`），重新签名后提交 —— 客户端下次检查才会看到更新。
 

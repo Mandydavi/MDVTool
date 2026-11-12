@@ -1,9 +1,9 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "date": "2026-11-12",
-  "size": 68127739,
-  "url": "https://github.com/Mandydavi/MDVTool/releases/download/v1.2.0/MDVTool-1.2.0-Update.zip",
-  "notes": "1.2.0 应用内自动更新：检查到新版本后直接下载、校验 SHA-256 与清单签名、覆盖安装目录并自动重启，全程不打开浏览器",
-  "sha256": "764b1a01385567cbd5b31f8a9e20232dcac59cc8355e5c944dfafdf3e8c130f0",
-  "sig": "MEUCIQCPmEVsX+MkzlD4y0PwvkmpwCBXxwUovfwqT164luhJOgIgPLqSNb4bwNDaqiWj2ArZEPcPsCAzSePXEuPOXeusoe8="
+  "size": 68136136,
+  "url": "https://github.com/Mandydavi/MDVTool/releases/download/v1.3.0/MDVTool-1.3.0-Update.zip",
+  "notes": "1.3.0 界面按「高级清爽」重做：暖白+墨蓝+香槟金配色、侧栏六入口、IDM 风格的新建下载窗口、资源嗅探与队列限速页、更新页内置浏览器扩展入口",
+  "sha256": "c2a2c1b05e17fb3ce03346ad851e4e49c40bebb400ec301fa550f9e27bdea9d0",
+  "sig": "MEUCIEnb/0ssG3I46a5aUS9T69BvItYYQPrBGtRP7QI7W2kHAiEAk/ipDVQqeNp+1i7rpzw5TfX4XKWfjW4/4mjijPJSHQQ="
 }

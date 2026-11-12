@@ -2,40 +2,48 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ============================================================
-         调色板：浅色（v2 全新设计）
-         层级：Bg #F4F6FA < Sidebar #EDF1F7 < Card #FFFFFF
+         调色板：浅色 · 高级清爽（暖白 + 墨蓝 + 香槟金）
+         层级：Bg #F6F4EF < Sidebar #FBFAF7 < Card #FFFFFF
          ============================================================ -->
 
     <!-- 表面 -->
-    <SolidColorBrush x:Key="Bg" Color="#F4F6FA"/>
-    <SolidColorBrush x:Key="SidebarBg" Color="#EDF1F7"/>
+    <SolidColorBrush x:Key="Bg" Color="#F6F4EF"/>
+    <SolidColorBrush x:Key="SidebarBg" Color="#FBFAF7"/>
     <SolidColorBrush x:Key="Card" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="CardHover" Color="#F6F8FC"/>
-    <SolidColorBrush x:Key="CardSel" Color="#EAEFF6"/>
-    <SolidColorBrush x:Key="Surface2" Color="#F6F8FC"/>
-    <SolidColorBrush x:Key="Surface3" Color="#EAEFF6"/>
+    <SolidColorBrush x:Key="CardHover" Color="#FAF8F4"/>
+    <SolidColorBrush x:Key="CardSel" Color="#F1EDE5"/>
+    <SolidColorBrush x:Key="Surface2" Color="#FAF9F6"/>
+    <SolidColorBrush x:Key="Surface3" Color="#F1EDE5"/>
 
     <!-- 描边 -->
-    <SolidColorBrush x:Key="Border" Color="#E0E6EF"/>
-    <SolidColorBrush x:Key="BorderSoft" Color="#EAEFF5"/>
-    <SolidColorBrush x:Key="BorderHover" Color="#C6D0DE"/>
+    <SolidColorBrush x:Key="Border" Color="#E7E3DB"/>
+    <SolidColorBrush x:Key="BorderSoft" Color="#F0EDE6"/>
+    <SolidColorBrush x:Key="BorderHover" Color="#CFC7B8"/>
 
     <!-- 文字 -->
-    <SolidColorBrush x:Key="Text" Color="#151C28"/>
-    <SolidColorBrush x:Key="Sub" Color="#4E5C70"/>
-    <SolidColorBrush x:Key="Dim" Color="#7A889C"/>
-    <SolidColorBrush x:Key="Text3" Color="#7A889C"/>
-    <SolidColorBrush x:Key="TextMuted" Color="#4E5C70"/>
-    <SolidColorBrush x:Key="Faint" Color="#C6D0DE"/>
+    <SolidColorBrush x:Key="Text" Color="#20242C"/>
+    <SolidColorBrush x:Key="Sub" Color="#5D6878"/>
+    <SolidColorBrush x:Key="Dim" Color="#8A94A4"/>
+    <SolidColorBrush x:Key="Text3" Color="#8A94A4"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#5D6878"/>
+    <SolidColorBrush x:Key="Faint" Color="#C2B9A8"/>
 
-    <!-- 品牌色：冰蓝 -->
-    <SolidColorBrush x:Key="Accent" Color="#2563EB"/>
-    <SolidColorBrush x:Key="Accent2" Color="#1D4ED8"/>
-    <SolidColorBrush x:Key="AccentHover" Color="#3B82F6"/>
-    <SolidColorBrush x:Key="AccentSoft" Color="#E7EDFB"/>
-    <SolidColorBrush x:Key="AccentDisabled" Color="#B9C6F5"/>
-    <SolidColorBrush x:Key="BrandSoft" Color="#E7EDFB"/>
-    <SolidColorBrush x:Key="AccentRing" Color="#292563EB"/>
+    <!-- 品牌色：墨蓝（会被 ThemeManager 按所选配色覆盖） -->
+    <SolidColorBrush x:Key="Accent" Color="#22314E"/>
+    <SolidColorBrush x:Key="Accent2" Color="#1B2840"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#2E3F62"/>
+    <SolidColorBrush x:Key="AccentSoft" Color="#EEF1F7"/>
+    <SolidColorBrush x:Key="AccentDisabled" Color="#B7C0D0"/>
+    <SolidColorBrush x:Key="BrandSoft" Color="#EEF1F7"/>
+    <SolidColorBrush x:Key="AccentRing" Color="#2922314E"/>
+
+    <!-- 香槟金：装饰强调（小节竖条、Logo 点、徽标） -->
+    <SolidColorBrush x:Key="Gold" Color="#B08D57"/>
+    <SolidColorBrush x:Key="GoldSoft" Color="#F6EFE3"/>
+
+    <!-- 墨蓝：标题/导航选中态 -->
+    <SolidColorBrush x:Key="Navy" Color="#22314E"/>
+    <SolidColorBrush x:Key="NavySoft" Color="#EEF1F7"/>
 
     <!-- 心动色：支持作者 -->
     <SolidColorBrush x:Key="Heart" Color="#E65A7D"/>
@@ -44,8 +52,8 @@
 
     <!-- 品牌渐变（标题栏 Logo / 主按钮） -->
     <LinearGradientBrush x:Key="BrandGrad" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#2563EB" Offset="0"/>
-        <GradientStop Color="#1D4ED8" Offset="1"/>
+        <GradientStop Color="#2B3A5C" Offset="0"/>
+        <GradientStop Color="#22314E" Offset="1"/>
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="HeartGrad" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="#E65A7D" Offset="0"/>
@@ -53,44 +61,48 @@
     </LinearGradientBrush>
 
     <!-- 状态色（文字） -->
-    <SolidColorBrush x:Key="Green" Color="#0E8A57"/>
-    <SolidColorBrush x:Key="Red" Color="#D43A50"/>
-    <SolidColorBrush x:Key="Amber" Color="#9A6B00"/>
+    <SolidColorBrush x:Key="Green" Color="#2F7D5B"/>
+    <SolidColorBrush x:Key="Red" Color="#B23B3B"/>
+    <SolidColorBrush x:Key="Amber" Color="#A9761C"/>
+    <SolidColorBrush x:Key="Violet" Color="#6B5BD0"/>
+    <SolidColorBrush x:Key="Cyan" Color="#217A8A"/>
 
     <!-- 状态色（底色） -->
-    <SolidColorBrush x:Key="SuccessSoft" Color="#E7F6EC"/>
-    <SolidColorBrush x:Key="DangerSoft" Color="#FCEDEB"/>
-    <SolidColorBrush x:Key="WarnSoft" Color="#FDF1DF"/>
+    <SolidColorBrush x:Key="SuccessSoft" Color="#E9F4EE"/>
+    <SolidColorBrush x:Key="DangerSoft" Color="#FBEBEB"/>
+    <SolidColorBrush x:Key="WarnSoft" Color="#FAF1E0"/>
+    <SolidColorBrush x:Key="VioletSoft" Color="#EFEAFC"/>
+    <SolidColorBrush x:Key="CyanSoft" Color="#E6F4F6"/>
 
     <!-- 文件类型徽章 -->
-    <SolidColorBrush x:Key="TypeSft" Color="#1E4FD8"/>
-    <SolidColorBrush x:Key="TypeSftSoft" Color="#E9EEFF"/>
-    <SolidColorBrush x:Key="TypeCkpt" Color="#6B3FD4"/>
-    <SolidColorBrush x:Key="TypeCkptSoft" Color="#F1EBFF"/>
-    <SolidColorBrush x:Key="TypeGguf" Color="#0B7285"/>
-    <SolidColorBrush x:Key="TypeGgufSoft" Color="#E2F5F8"/>
-    <SolidColorBrush x:Key="TypeMisc" Color="#4B5A72"/>
-    <SolidColorBrush x:Key="TypeMiscSoft" Color="#EDF1F7"/>
+    <SolidColorBrush x:Key="TypeSft" Color="#22314E"/>
+    <SolidColorBrush x:Key="TypeSftSoft" Color="#EEF1F7"/>
+    <SolidColorBrush x:Key="TypeCkpt" Color="#6B5BD0"/>
+    <SolidColorBrush x:Key="TypeCkptSoft" Color="#EFEAFC"/>
+    <SolidColorBrush x:Key="TypeGguf" Color="#217A8A"/>
+    <SolidColorBrush x:Key="TypeGgufSoft" Color="#E6F4F6"/>
+    <SolidColorBrush x:Key="TypeMisc" Color="#5D6878"/>
+    <SolidColorBrush x:Key="TypeMiscSoft" Color="#F1EDE5"/>
 
     <!-- 控件 -->
-    <SolidColorBrush x:Key="FieldBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="FieldBg" Color="#FAF9F6"/>
     <SolidColorBrush x:Key="GhostBg" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="HoverSoft" Color="#F6F8FC"/>
-    <SolidColorBrush x:Key="RowHover" Color="#F6F8FC"/>
-    <SolidColorBrush x:Key="RowSel" Color="#EAEFF6"/>
-    <SolidColorBrush x:Key="ItemHover" Color="#F1F4F9"/>
-    <SolidColorBrush x:Key="PanelSoft" Color="#F7F9FD"/>
-    <SolidColorBrush x:Key="PanelAlt" Color="#FAFBFD"/>
+    <SolidColorBrush x:Key="HoverSoft" Color="#F7F5F0"/>
+    <SolidColorBrush x:Key="RowHover" Color="#FAF8F4"/>
+    <SolidColorBrush x:Key="RowSel" Color="#F1EDE5"/>
+    <SolidColorBrush x:Key="ItemHover" Color="#F5F2EC"/>
+    <SolidColorBrush x:Key="PanelSoft" Color="#FAF9F6"/>
+    <SolidColorBrush x:Key="PanelAlt" Color="#FCFBF8"/>
 
-    <SolidColorBrush x:Key="TrackBg" Color="#E9EDF4"/>
-    <SolidColorBrush x:Key="ThumbBg" Color="#C7D0DE"/>
-    <SolidColorBrush x:Key="SwitchOff" Color="#C6D0DE"/>
+    <SolidColorBrush x:Key="TrackBg" Color="#EEEAE2"/>
+    <SolidColorBrush x:Key="ThumbBg" Color="#CFC7B8"/>
+    <SolidColorBrush x:Key="SwitchOff" Color="#DDD7CC"/>
     <SolidColorBrush x:Key="Knob" Color="#FFFFFF"/>
 
     <SolidColorBrush x:Key="CloseHover" Color="#E5484D"/>
     <SolidColorBrush x:Key="Scrim" Color="#5C0C1422"/>
 
     <!-- 注意：Shadow 是 Color 而不是 Brush，DropShadowEffect.Color 只认 Color -->
-    <Color x:Key="Shadow">#0F1A2B</Color>
+    <Color x:Key="Shadow">#28323F</Color>
 
 </ResourceDictionary>

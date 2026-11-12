@@ -91,6 +91,16 @@
     <SolidColorBrush x:Key="CloseHover" Color="#E5484D"/>
     <SolidColorBrush x:Key="Scrim" Color="#9E03060B"/>
 
+    <!-- 装饰强调：香槟金 / 墨蓝（与浅色版同名，深色下提亮） -->
+    <SolidColorBrush x:Key="Gold" Color="#C9A46E"/>
+    <SolidColorBrush x:Key="GoldSoft" Color="#2A2418"/>
+    <SolidColorBrush x:Key="Navy" Color="#9FB2D4"/>
+    <SolidColorBrush x:Key="NavySoft" Color="#1A2231"/>
+    <SolidColorBrush x:Key="Violet" Color="#B49BFF"/>
+    <SolidColorBrush x:Key="VioletSoft" Color="#241E3A"/>
+    <SolidColorBrush x:Key="Cyan" Color="#6FD0DE"/>
+    <SolidColorBrush x:Key="CyanSoft" Color="#132A2E"/>
+
     <!-- 注意：Shadow 是 Color 而不是 Brush，DropShadowEffect.Color 只认 Color -->
     <Color x:Key="Shadow">#000000</Color>
 

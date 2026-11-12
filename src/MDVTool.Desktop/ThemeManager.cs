@@ -21,10 +21,11 @@ public static class ThemeManager
 
     private static readonly (string Name, PaletteSet Dark, PaletteSet Light)[] Sets =
     {
-        ("blue",   new PaletteSet("#6AA9FF", "#4C7DF0", "#8ABEFF"), new PaletteSet("#2563EB", "#1D4ED8", "#3B82F6")),
+        // 默认「墨蓝」：深墨蓝做强调，配暖白底 + 香槟金，对应 docs/design/三页面-高级清爽.html
+        ("blue",   new PaletteSet("#A9BBD8", "#8EA3C4", "#C2D0E8"), new PaletteSet("#22314E", "#1B2840", "#2E3F62")),
         ("mint",   new PaletteSet("#8BE28B", "#4FC08A", "#A6EBA6"), new PaletteSet("#15803D", "#0F6E36", "#1C9A4B")),
-        ("violet", new PaletteSet("#B49BFF", "#8B72F0", "#C8B6FF"), new PaletteSet("#7C3AED", "#6D28D9", "#8B5CF6")),
-        ("coral",  new PaletteSet("#FF9B7A", "#F0704F", "#FFB296"), new PaletteSet("#D9542B", "#BE441F", "#E4673C")),
+        ("violet", new PaletteSet("#B49BFF", "#8B72F0", "#C8B6FF"), new PaletteSet("#6B5BD0", "#5B4CB8", "#7C6CE0")),
+        ("coral",  new PaletteSet("#FF9B7A", "#F0704F", "#FFB296"), new PaletteSet("#C4553A", "#A9462F", "#D4674A")),
     };
 
     public static void Apply(bool dark) => Apply(dark, Palette);
@@ -46,7 +47,7 @@ public static class ThemeManager
         var accent = (Color)ColorConverter.ConvertFromString(p.Accent);
         var accent2 = (Color)ColorConverter.ConvertFromString(p.Accent2);
         var hover = (Color)ColorConverter.ConvertFromString(p.Hover);
-        var bg = (Color)ColorConverter.ConvertFromString(dark ? "#0A0C10" : "#F4F6FA");
+        var bg = (Color)ColorConverter.ConvertFromString(dark ? "#0A0C10" : "#F6F4EF");
 
         dict["Accent"] = new SolidColorBrush(accent);
         dict["Accent2"] = new SolidColorBrush(accent2);
