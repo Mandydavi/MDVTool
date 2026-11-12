@@ -1,8 +1,9 @@
 {
-  "version": "1.1.1",
+  "version": "1.2.0",
   "date": "2026-11-12",
-  "size": 68359960,
-  "url": "https://github.com/Mandydavi/MDVTool/releases/latest",
-  "notes": "1.1.1 图标修正：标题栏「配色」按钮换成水滴图标（原来是圆加竖线，远看像 Φ）；「检查更新」「断点续传」「重新扫描」的刷新图标重绘为双弧双箭头。无功能改动，覆盖更新即可",
-  "sha256": "7e4c476ead4ecccdac06659350f8cd57fccbc144f38be80bf3d5f47e527384b2"
+  "size": 68127739,
+  "url": "https://github.com/Mandydavi/MDVTool/releases/download/v1.2.0/MDVTool-1.2.0-Update.zip",
+  "notes": "1.2.0 应用内自动更新：检查到新版本后直接下载、校验 SHA-256 与清单签名、覆盖安装目录并自动重启，全程不打开浏览器",
+  "sha256": "764b1a01385567cbd5b31f8a9e20232dcac59cc8355e5c944dfafdf3e8c130f0",
+  "sig": "MEUCIQCPmEVsX+MkzlD4y0PwvkmpwCBXxwUovfwqT164luhJOgIgPLqSNb4bwNDaqiWj2ArZEPcPsCAzSePXEuPOXeusoe8="
 }

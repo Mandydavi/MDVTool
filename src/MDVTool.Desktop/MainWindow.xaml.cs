@@ -186,7 +186,7 @@ public partial class MainWindow : Window
             _tray = null;
         };
 
-        // 启动 10 秒后静默检查更新（不打扰首次使用）
+        // 启动 10 秒后静默检查更新（不打扰首次使用），之后每 2 小时再查一次
         if (App.Settings.AutoCheckUpdate && !string.IsNullOrWhiteSpace(App.Settings.UpdateFeed))
         {
             var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
@@ -196,6 +196,14 @@ public partial class MainWindow : Window
                 CheckUpdateAsync(false);
             };
             t.Start();
+
+            var periodic = new DispatcherTimer { Interval = TimeSpan.FromHours(2) };
+            periodic.Tick += (_, _) =>
+            {
+                if (_updating || _pendingUpdate != null) return;   // 正在更新 / 已提示过就别重复打扰
+                CheckUpdateAsync(false);
+            };
+            periodic.Start();
         }
 
         // 引擎缺失时提示并支持一键获取（窗口出来之后再做，才能挂 MessageBox）
@@ -224,6 +232,9 @@ public partial class MainWindow : Window
                 }
             }), DispatcherPriority.Background);
         }
+
+        // 界面真正显示出来 = 本次启动健康，写在安装目录里给更新器看（更新后据此决定是否回滚）
+        Loaded += (_, _) => UpdateInstaller.MarkHealthy();
     }
 
     // ==================================================================
@@ -484,16 +495,26 @@ public partial class MainWindow : Window
 
         if (info == null)
         {
-            if (UpdateStatusText != null) UpdateStatusText.Text = "已是最新版本";
+            string? err = UpdateService.LastError;
+            if (UpdateStatusText != null)
+                UpdateStatusText.Text = err == null
+                    ? "已是最新版本"
+                    : err;
+            if (UpdateNowBtn != null) UpdateNowBtn.Visibility = Visibility.Collapsed;
+            if (UpdateProgress != null) UpdateProgress.Visibility = Visibility.Collapsed;
 
             if (manual)
-                FinishCheckingDialog($"当前已是最新版本（{UpdateService.CurrentText}）。", found: false);
+                FinishCheckingDialog(err == null
+                    ? $"当前已是最新版本（{UpdateService.CurrentText}）。"
+                    : $"{err}\n\n当前版本 {UpdateService.CurrentText}，稍后可以再试。", found: false);
             return;
         }
 
         _pendingUpdate = info;
         Log($"发现新版本 {info.Version}（当前 {UpdateService.CurrentText}）");
-        if (UpdateStatusText != null) UpdateStatusText.Text = $"发现新版本 {info.Version}";
+        if (UpdateStatusText != null)
+            UpdateStatusText.Text = $"发现新版本 {info.Version}（{info.SizeText}），点「立即更新」自动下载并替换";
+        if (UpdateNowBtn != null) UpdateNowBtn.Visibility = Visibility.Visible;
 
         if (UpdatePill != null)
         {
@@ -502,7 +523,78 @@ public partial class MainWindow : Window
         }
 
         if (manual)
-            FinishCheckingDialog($"发现新版本 {info.Version}（当前 {UpdateService.CurrentText}），可在「设置 → 更新与关于」里查看。", found: true);
+            FinishCheckingDialog($"发现新版本 {info.Version}（当前 {UpdateService.CurrentText}）。\n点「立即更新」会自动下载、替换文件并重启，全程不用打开网页。", found: true);
+    }
+
+    // ==================================================================
+    // 应用内更新：下载 → 覆盖安装目录 → 自动重启
+    // ==================================================================
+    private bool _updating;
+
+    private async void UpdateNow_Click(object sender, RoutedEventArgs e) => await StartUpdateAsync();
+
+    private async Task StartUpdateAsync()
+    {
+        if (_updating) return;
+        if (_pendingUpdate == null) { CheckUpdateAsync(true); return; }
+
+        var info = _pendingUpdate;
+
+        int active = _tasks.Count(t => t.IsActive);
+        if (active > 0)
+        {
+            var r = await AskAsync("更新需要重启程序",
+                $"还有 {active} 个任务正在下载。\n\n继续更新会把它们中断，确定现在更新到 {info.Version} 吗？",
+                "继续更新", "稍后再说");
+            if (r != AskResult.Primary) return;
+        }
+
+        _updating = true;
+        if (UpdateNowBtn != null) UpdateNowBtn.IsEnabled = false;
+        SetUpdateProgress(1, $"正在准备下载 {info.Version}…");
+
+        try
+        {
+            var progress = new Progress<(double Pct, string Text)>(p =>
+                SetUpdateProgress(Math.Max(1, p.Pct * 100), p.Text));
+
+            string payload = await UpdateInstaller.DownloadAsync(info, progress, CancellationToken.None);
+
+            SetUpdateProgress(100, "下载完成，正在重启完成安装…");
+            Log("更新包已就绪，交给更新进程覆盖安装目录：" + payload);
+            UpdateInstaller.Log($"准备覆盖：{payload}");
+
+            UpdateInstaller.ApplyAndRestart(payload);
+
+            // 让日志与状态条先刷出来，再安静退出（_exiting 跳过「关闭询问」）
+            await Task.Delay(800);
+            _exiting = true;
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            _updating = false;
+            if (UpdateNowBtn != null) UpdateNowBtn.IsEnabled = true;
+            SetUpdateProgress(0, "更新失败：" + ex.Message);
+            Log("[错误] 应用内更新失败：" + ex.Message);
+            UpdateInstaller.Log("[错误] " + ex);
+            await AskAsync("更新失败",
+                ex.Message + "\n\n可以稍后再试，或从「项目主页」手动下载覆盖。", "知道了");
+            AskOverlay.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void SetUpdateProgress(double pct, string text)
+    {
+        if (UpdateStatusText != null) UpdateStatusText.Text = text;
+        if (UpdateProgress == null) return;
+        if (pct <= 0)
+        {
+            UpdateProgress.Visibility = Visibility.Collapsed;
+            return;
+        }
+        UpdateProgress.Visibility = Visibility.Visible;
+        UpdateProgress.Value = Math.Max(0, Math.Min(100, pct));
     }
 
     /// <summary>点检查更新立刻给反馈，不等网络返回才弹窗</summary>
@@ -537,21 +629,9 @@ public partial class MainWindow : Window
         AskPrimaryBtn.IsEnabled = true;
     }
 
-    private void OpenUpdatePage()
-    {
-        var url = _pendingUpdate?.Url;
-        if (string.IsNullOrWhiteSpace(url)) return;
-        try
-        {
-            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
-        }
-        catch (Exception ex)
-        {
-            Log("[错误] 打开下载页失败：" + ex.Message);
-        }
-    }
-
-    private void UpdatePill_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => OpenUpdatePage();
+    /// <summary>点状态条上的「x.x.x 可用」= 立刻下载并安装，不走浏览器</summary>
+    private async void UpdatePill_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        => await StartUpdateAsync();
 
     private void CheckUpdate_Click(object sender, RoutedEventArgs e) => CheckUpdateAsync(true);
 

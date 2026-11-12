@@ -4,7 +4,7 @@
 </picture>
 
 <p align="center">
-  <b>v1.1.1</b> &nbsp;·&nbsp; Windows 10 / 11 (64-bit) &nbsp;·&nbsp; MIT &nbsp;·&nbsp; .NET 10
+  <b>v1.2.0</b> &nbsp;·&nbsp; Windows 10 / 11 (64-bit) &nbsp;·&nbsp; MIT &nbsp;·&nbsp; .NET 10
   <br>
   <a href="../../releases/latest">下载</a> &nbsp;·&nbsp;
   <a href="../../issues">反馈</a> &nbsp;·&nbsp;
@@ -17,6 +17,15 @@
 **MDV** 取自作者名字 **Mandydavi** 的缩写。它不做「又一个下载器皮肤」，而是把两件最烦的事一起做掉：**找到最快的源**，**放到对的目录**。
 
 ---
+
+## 1.2.0 更新：应用内自动更新
+
+- **不用再开浏览器**：检查到新版本后，点状态条的「x.x.x 可用」或设置页的「立即更新」，直接在软件里下载、替换、重启
+- **先验再装**：下载完比对 `size` 与 `sha256`，再校验清单自身的 ECDSA 签名；任何一项不符就丢弃，绝不"警告一下继续装"
+- **独立进程替换**：主程序退出后由临时更新进程覆盖安装目录，覆盖前整目录备份；新版本 30 秒内没给出健康标记就自动回滚
+- **健康标记**：新版本界面真正显示出来后写 `.mdv-health`，更新进程收到才删除备份
+- **自动检查**：启动 10 秒后检查一次，之后每 2 小时复查（可在设置里关掉）
+- 更新源支持 http(s)、局域网共享盘、U 盘；版本清单与签名规则见下方「更新机制」
 
 ## 1.1.1 更新：图标修正
 
@@ -65,7 +74,7 @@
 
 | | |
 |:--:|---|
-| **1** | 从 [Releases](../../releases/latest) 下载 `MDVTool-1.1.1-SingleFile.exe`，双击即用 |
+| **1** | 从 [Releases](../../releases/latest) 下载 `MDVTool-1.2.0-SingleFile.exe`，双击即用 |
 | **2** | 把链接粘进输入框，或直接把 `.torrent` 拖进来 |
 | **3** | 点「开始下载」。测速、选源、归类，它自己完成 |
 
@@ -123,11 +132,11 @@ flowchart LR
 
 | 文件 | 适合 | 说明 |
 |---|---|---|
-| `MDVTool-1.1.1-SingleFile.exe` | 只想拿一个 exe | 首次运行自解包到 `%LOCALAPPDATA%`，之后按版本复用 |
-| `MDVTool-1.1.1-Portable.zip` | 放 U 盘、拷走就用 | 解压后双击 `MDV Tool.exe`，不写注册表 |
-| `MDVTool-1.1.1-Setup.exe` | 想要安装与卸载入口 | 带安装向导，建开始菜单 / 桌面快捷方式与卸载项 |
-| `MDVTool-1.1.1-Bundle.zip` | 内网分发、装机合集 | 主程序、安装器、浏览器扩展分目录放好，附 MANIFEST |
-| `MDVTool-1.1.1-Update.zip` | 已在用旧版 | 只含主程序与引擎，覆盖即可更新 |
+| `MDVTool-1.2.0-SingleFile.exe` | 只想拿一个 exe | 首次运行自解包到 `%LOCALAPPDATA%`，之后按版本复用 |
+| `MDVTool-1.2.0-Portable.zip` | 放 U 盘、拷走就用 | 解压后双击 `MDV Tool.exe`，不写注册表 |
+| `MDVTool-1.2.0-Setup.exe` | 想要安装与卸载入口 | 带安装向导，建开始菜单 / 桌面快捷方式与卸载项 |
+| `MDVTool-1.2.0-Bundle.zip` | 内网分发、装机合集 | 主程序、安装器、浏览器扩展分目录放好，附 MANIFEST |
+| `MDVTool-1.2.0-Update.zip` | 已在用旧版 | 只含主程序与引擎，覆盖即可更新 |
 
 > **仅支持 Windows 10 / 11（64 位）**，发布包自包含，不需要安装 .NET 运行时。
 > macOS 与 Linux 不支持——界面是 C# / WPF 写的，WPF 只有 Windows 有。
@@ -205,7 +214,7 @@ powershell -ExecutionPolicy Bypass -File scripts\pack.ps1
 | `src/MDVTool.Desktop/` | 主程序（WPF），`Sources/` 为下载源适配器 |
 | `src/MDVTool.Pack/`、`src/MDVTool.Setup/` | 打包器与安装器 |
 | `extensions/BrowserExtension/` | 浏览器嗅探扩展 |
-| `scripts/` | 打包、发版、安装器构建脚本 |
+| `scripts/` | 打包、发版、安装器构建、清单签名脚本 |
 | `bin/` | 运行所需二进制（aria2c、安装器） |
 | `dist/` | 发布产物 |
 | `docs/` | 文档、更新日志、分发说明、设计参考 |
@@ -216,17 +225,29 @@ powershell -ExecutionPolicy Bypass -File scripts\pack.ps1
 
 ### 更新机制
 
-客户端启动 10 秒后检查更新：先读仓库的 `releases.atom` 拿到最新 tag，再取该 tag 下的 `version.json`；版本更高就在状态条提示，点击跳到 Release 页面。
+`version.json` 是唯一入口，客户端按这个顺序走：
 
-用 tag 地址而不是分支地址，是为了绕开 jsDelivr 对 `@main` 最长 12 小时的缓存。取不到时会自动回退到 jsDelivr 分支地址、raw.githubusercontent 和 gcore 镜像。
+1. **检查**：启动 10 秒后静默检查（之后每 2 小时一次）。先读仓库的 `releases.atom` 拿最新 tag，再取该 tag 下的 `version.json` —— 用 tag 地址而不是分支地址，是为了绕开 jsDelivr 对 `@main` 最长 12 小时的缓存；取不到会自动回退到 jsDelivr 分支、raw.githubusercontent 和 gcore 镜像。
+2. **提示**：版本更高就在状态条挂一个「x.x.x 可用」，点它就是开始下载，不跳浏览器。
+3. **校验**：下载 `url` 指向的 `.zip` 覆盖包后，先比 `size` 与 `sha256`，再验清单自身签名。签名对象是 `version|url|sha256|size` 这四个原始字段，公钥内置在客户端（`UpdateService.ManifestPublicKey`），私钥只在发版机器上（`%USERPROFILE%\.mdv\signing-key.pem`）——即使更新服务器被攻破，没有私钥也签不出能过校验的清单。**任何一项校验失败都直接丢弃，不装。**
+4. **替换**：主程序把自身复制成临时更新器（`%TEMP%\mdvupd-*`）并退出；更新器等旧进程结束后，先把安装目录整份备份到 `%LOCALAPPDATA%\MDV\Update\backup-*`，再覆盖文件、启动新版本。
+5. **确认 / 回滚**：新版本界面显示出来后写 `.mdv-health`，更新进程收到标记才删备份；30 秒内没标记或新进程提前退出，就把备份覆盖回去并重新拉起旧版本。
+
+给 `version.json` 签名（改了 `url` / `sha256` / `size` 之后必须重签）：
+
+```
+powershell -ExecutionPolicy Bypass -File scripts\sign-manifest.ps1 -Path version.json
+```
 
 ### 发版
 
 ```
-git tag v1.1.1 && git push origin v1.1.1
+git tag v1.2.0 && git push origin v1.2.0
 ```
 
-GitHub Actions 会编译、重命名成 `MDVTool-1.1.1-SingleFile.exe` / `.zip`、算 SHA-256 并建 Release。
+GitHub Actions 会编译、重命名成 `MDVTool-1.2.0-SingleFile.exe` / `.zip`、算 SHA-256 并建 Release。
+
+发完版记得：把 `version.json` 的 `version` / `size` / `sha256` / `url` 改成新版本（`url` 指向该 tag 下的 `MDVTool-x.y.z-Update.zip`），重新签名后提交 —— 客户端下次检查才会看到更新。
 
 </details>
 

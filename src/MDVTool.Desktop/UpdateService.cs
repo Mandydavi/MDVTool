@@ -18,6 +18,15 @@ public sealed class UpdateInfo
     public string Url { get; set; } = "";
     public string Notes { get; set; } = "";
 
+    /// <summary>更新包 SHA-256（可选）；应用内更新时用来校验下载是否完整</summary>
+    public string Sha256 { get; set; } = "";
+
+    /// <summary>清单签名（base64，ECDSA P-256 / SHA-256）；为空表示该清单未签名</summary>
+    public string Signature { get; set; } = "";
+
+    /// <summary>清单里原样的 url（签名是对原样字段做的，不能用补全后的路径）</summary>
+    public string RawUrl { get; set; } = "";
+
     public string SizeText => Size > 0 ? Fmt.Human(Size) : "";
     public string Summary => string.Join(" · ",
         new[] { Version, Date, SizeText }.Where(x => !string.IsNullOrWhiteSpace(x)));
@@ -44,9 +53,13 @@ public static class UpdateService
         }
     }
 
+    /// <summary>最近一次检查失败的原因（成功或"已是最新"时为 null）</summary>
+    public static string? LastError { get; private set; }
+
     /// <summary>有更新返回信息，没有 / 未配置 / 失败都返回 null</summary>
     public static async Task<UpdateInfo?> CheckAsync(CancellationToken ct)
     {
+        LastError = null;
         var feed = (App.Settings.UpdateFeed ?? "").Trim();
         if (feed.Length == 0) return null;
 
@@ -57,12 +70,15 @@ public static class UpdateService
             try
             {
                 string local = LocalPath(feed);
-                if (File.Exists(local))
-                    return Finish(Parse(File.ReadAllText(local)), local);
+                if (!File.Exists(local))
+                {
+                    LastError = "更新源文件不存在：" + local;
+                    return null;
+                }
+                return Finish(Parse(File.ReadAllText(local)), local);
             }
-            catch (OperationCanceledException) { throw; }
-            catch { }
-            return null;
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception ex) { LastError = "读取更新源失败：" + ex.Message; return null; }
         }
 
         // 先按「最新 tag」取文件：jsDelivr 对 @main 有最长 12 小时的缓存，
@@ -71,22 +87,30 @@ public static class UpdateService
         if (byTag != null) return byTag;
 
         // 依次尝试多个镜像：国内直连 raw.githubusercontent 基本不通，jsDelivr 通常可达
+        string? lastFail = null;
         foreach (var url in Candidates(feed))
         {
             try
             {
                 var json = await ComfyNet.Http.GetStringAsync(url, ct);
-                return Finish(Parse(json), url);
+                var info = Finish(Parse(json), url);
+                if (info == null && LastError != null) return null;   // 签名/内容有问题，不再试别的镜像
+                return info;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 throw;
             }
-            catch
+            catch (OperationCanceledException)
             {
-                // 换下一个源
+                lastFail = "连接更新服务器超时";           // HttpClient 超时也走这里，不能当成"已是最新"
+            }
+            catch (Exception ex)
+            {
+                lastFail = ex.Message;
             }
         }
+        LastError = lastFail == null ? "更新源不可达" : "检查更新失败：" + lastFail;
         return null;
     }
 
@@ -112,9 +136,11 @@ public static class UpdateService
 
             var url = $"https://cdn.jsdelivr.net/gh/{owner}/{repo}@{tag.Groups[1].Value}/version.json";
             var json = await ComfyNet.Http.GetStringAsync(url, ct);
-            return Finish(Parse(json), url);
+            var info = Finish(Parse(json), url);
+            if (info == null && LastError != null) return null;   // 签名无效等情况，别再用镜像重试
+            return info;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
         }
@@ -177,6 +203,13 @@ public static class UpdateService
     private static UpdateInfo? Finish(UpdateInfo? info, string source)
     {
         if (info == null) return null;
+
+        if (!VerifySignature(info))
+        {
+            LastError = "更新清单签名校验失败，已丢弃（可能被篡改）";
+            return null;
+        }
+
         string u = (info.Url ?? "").Trim();
         if (u.Length == 0 || IsHttp(u) || Path.IsPathRooted(u) ||
             u.StartsWith("\\\\", StringComparison.Ordinal)) return info;
@@ -199,8 +232,44 @@ public static class UpdateService
         return info;
     }
 
-    private static UpdateInfo? Parse(string json)
+    // ==================================================================
+    // 清单签名：ECDSA P-256 / SHA-256
+    // 签名对象是清单里的原始字段 "version|url|sha256|size"，签名私钥不进仓库。
+    // 规则：清单带 sig 就必须验签通过，否则丢整条更新（fail-closed）；
+    //       不带 sig 视为旧格式，暂时放行（后续版本会改成必须签名）。
+    // ==================================================================
+    private const string ManifestPublicKey = @"-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEyJ8b/UF2zDAmD/DSBPJqXeqold7s
+aLbK6EZtTAUc8+v64S5vVkho8g+UCg/n1UVp4RweCYBLZlnkqs4KFW7Ykw==
+-----END PUBLIC KEY-----";
+
+    /// <summary>签名明文（与 scripts\sign-manifest.ps1 里的拼法必须一致）</summary>
+    public static string SignedPayload(UpdateInfo i) =>
+        $"{i.Version}|{i.RawUrl}|{i.Sha256.ToLowerInvariant()}|{i.Size}";
+
+    private static bool VerifySignature(UpdateInfo info)
     {
+        if (string.IsNullOrWhiteSpace(info.Signature)) return true;   // 旧清单：未签名
+
+        try
+        {
+            using var ecdsa = System.Security.Cryptography.ECDsa.Create();
+            ecdsa.ImportFromPem(ManifestPublicKey);
+            var data = System.Text.Encoding.UTF8.GetBytes(SignedPayload(info));
+            var sig = Convert.FromBase64String(info.Signature.Trim());
+
+            // openssl 产出的签名是 DER（RFC3279）序列，.NET 默认按 IEEE-P1363 验，必须显式指定
+            return ecdsa.VerifyData(data, sig,
+                System.Security.Cryptography.HashAlgorithmName.SHA256,
+                System.Security.Cryptography.DSASignatureFormat.Rfc3279DerSequence);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static UpdateInfo? Parse(string json)    {
         try
         {
             // PowerShell 的 Set-Content -Encoding UTF8 会带 BOM，JsonDocument 不接受
@@ -223,7 +292,10 @@ public static class UpdateService
                 Date = root.TryGetProperty("date", out var d) ? (d.GetString() ?? "") : "",
                 Size = root.TryGetProperty("size", out var s) && s.TryGetInt64(out var sz) ? sz : 0,
                 Url = root.TryGetProperty("url", out var u) ? (u.GetString() ?? "") : "",
+                RawUrl = root.TryGetProperty("url", out var ru) ? (ru.GetString() ?? "") : "",
                 Notes = root.TryGetProperty("notes", out var n) ? (n.GetString() ?? "") : "",
+                Sha256 = root.TryGetProperty("sha256", out var h) ? (h.GetString() ?? "") : "",
+                Signature = root.TryGetProperty("sig", out var g) ? (g.GetString() ?? "") : "",
             };
         }
         catch

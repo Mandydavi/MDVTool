@@ -11,7 +11,7 @@
     <RootNamespace>MDVTool</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
     <Product>MDV Tool</Product>
     <AssemblyTitle>MDV Tool</AssemblyTitle>
     <Company>Mandydavi</Company>

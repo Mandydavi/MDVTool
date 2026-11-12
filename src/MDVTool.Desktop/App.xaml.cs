@@ -14,6 +14,14 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // 更新器模式：由正在运行的旧版本拉起，只负责等它退出、覆盖文件、再启动新版
+        if (UpdateInstaller.TryRunApplyMode(e.Args))
+        {
+            StartupUri = null;
+            Shutdown();
+            return;
+        }
+
         DispatcherUnhandledException += OnUnhandled;
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
